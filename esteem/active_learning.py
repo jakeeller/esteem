@@ -337,7 +337,9 @@ def create_mltraj_tasks(mltraj_task,train_calcs,targets,rand_seed,meth,md_wrappe
                         if mltraj_task.carved_suffix is not None and mltraj_task.carved_suffix!='':
                             taskname = f"{taskname}_{traj_suffix}_{mltraj_task.carved_suffix}"
                         else:
-                            taskname = f"{taskname}_{traj_suffix}"                        
+                            #taskname = f"{taskname}_{traj_suffix}" ###COMMENTED OUT###
+                            taskname = taskname + f'x{len(rand_seed)}_{traj_suffix}'###ADDED###
+                            calc_suffix = {f'{meth}{t}{rs}':rseed for (rs,rseed) in rand_seed.items()} ###ADDED##
                     else:
                         taskname = taskname + f'x{len(rand_seed)}'
                         calc_suffix = {f'{meth}{t}{rs}':rseed for (rs,rseed) in rand_seed.items()}
@@ -365,6 +367,18 @@ def create_mltest_tasks(test_task,train_calcs,seeds,targets,rand_seed,truth,meth
     """
     new_test_tasks = {}
     for target in targets:
+        test_task.traj_links = {}
+        if targets[target] == 'gs':
+            test_task.traj_links[0] = ['nr_cycl_gs_MACEac_mlclus/nr_cycl_gs_U_orca_ac3u.traj']
+            test_task.traj_links[1] = ['nr_cycl_gs_MACEac_mlclus/nr_cycl_gs_Q_orca_ac3u.traj']
+            test_task.traj_links[2] = ['nr_cycl_es1_MACEac_mlclus/nr_cycl_gs_U_orca_ac3u.traj']
+            test_task.traj_links[3] = ['nr_cycl_es1_MACEac_mlclus/nr_cycl_gs_Q_orca_ac3u.traj']
+        else:
+            test_task.traj_links[0] = ['nr_cycl_gs_MACEac_mlclus/nr_cycl_es1_U_orca_ac3u.traj']
+            test_task.traj_links[1] = ['nr_cycl_gs_MACEac_mlclus/nr_cycl_es1_Q_orca_ac3u.traj']
+            test_task.traj_links[2] = ['nr_cycl_es1_MACEac_mlclus/nr_cycl_es1_U_orca_ac3u.traj']
+            test_task.traj_links[3] = ['nr_cycl_es1_MACEac_mlclus/nr_cycl_es1_Q_orca_ac3u.traj']
+
         for t in train_calcs:
             # This test uses the calculator directory from the MLTrain task as the traj location
             test_task.traj_suffix = truth
@@ -374,7 +388,7 @@ def create_mltest_tasks(test_task,train_calcs,seeds,targets,rand_seed,truth,meth
             test_task.traj_prefix = f"{test_task.calc_seed}_{targets[target]}_{meth}{pref(t)}_test/"
             test_task.target = target
             targstr = targets[target]
-            test_task.traj_links = {}
+           # test_task.traj_links = {}
             test_task.which_trajs = []
             if separate_valid:
                 test_task.traj_links_valid = test_task.traj_links
@@ -393,7 +407,7 @@ def create_mltest_tasks(test_task,train_calcs,seeds,targets,rand_seed,truth,meth
                 new_test_tasks[f"{targets[target]}_{meth}{t}{rs}"] = deepcopy(test_task)
             # Now set up tasks for testing against ground truth results sampled from a specific set of trajectory data
             for tp in train_calcs:
-                test_task.traj_links = {}
+                #test_task.traj_links = {}
                 test_task.which_trajs = []
                 if separate_valid:
                     test_task.traj_links_valid = test_task.traj_links

@@ -1223,6 +1223,10 @@ def mltest_driver(mltest,all_solutes,all_solvents):
 
             # obtain a list of the trajectories to be used in the training
             which_trajs,trajnames = mltest.get_trajnames()
+            mltest.traj_links[which_trajs[0]] = mltest.traj_links.pop(0)
+            mltest.traj_links[which_trajs[1]] = mltest.traj_links.pop(1)
+            mltest.traj_links[which_trajs[2]] = mltest.traj_links.pop(2)
+            mltest.traj_links[which_trajs[3]] = mltest.traj_links.pop(3)
             trajnames = dict(zip(which_trajs,trajnames))
             print(f'# Creating symlinks to trajectories')
             for traj in which_trajs:
@@ -1238,12 +1242,16 @@ def mltest_driver(mltest,all_solutes,all_solvents):
                     traj_links = [mltest.traj_links[traj]]
 
                 # Loop over the list made above
+                #dir1 = 'nr_cycl_gs_MACEac_mlclus/'
+                #dir2 = 'nr_cycl_es1_MACEac_mlclus/'
+                #traj_links = [dir1+'nr_cycl_gs_U_orca_ac3u.traj', dir1+'nr_cycl_gs_Q_orca_ac3u.traj',dir2+'nr_cycl_gs_U_orca_ac3u.traj', dir2+'nr_cycl_gs_Q_orca_ac3u.traj']
                 for traj_link in traj_links:
 
                     # Check if the traj_link string contains "{solu}" or "{solv}", in
                     # which case replace these with the appropriate solvent or solute string
-                    traj_link = sub_solu_solv_names(traj_link,mltest.seed,all_solutes,all_solvents)
-                        
+                    traj_link = sub_solu_solv_names(traj_link,mltest.seed,all_solutes,all_solvents) ###COMMENTED OUT###
+
+                    
                     # Find the length of the trajectory and print it along with the proposed link
                     try:
                         t = Trajectory('../'+traj_link); l = len(t); t.close()
