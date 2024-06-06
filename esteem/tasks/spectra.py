@@ -53,8 +53,9 @@ class SpectraTask:
             wrapper=onetep.OnetepWrapper()
             read_excitations = wrapper.read_excitations
         elif self.inputformat.lower()=="orca":
-            calc=ORCA(label="temp")
             wrapper=orca.ORCAWrapper()
+            wrapper.setup()
+            calc=ORCA(label="temp",profile=wrapper.orcaprofile)
             read_excitations = wrapper.read_excitations
         elif self.inputformat.lower()=="precalculated":
             from types import SimpleNamespace
@@ -288,9 +289,11 @@ class SpectraTask:
         #vib_sticks[:,1] = vib_sticks[:,1] / np.max(vib_sticks[:,1])
         return vib_sticks
 
-    def plot(self,broad_spectrum,fig,ax,rgb,label,linestyle='solid',linewidth=1.5):
+    def plot(self,broad_spectrum,fig,ax,rgb,label,linestyle='solid',linewidth=1.5,yoffs=0):
 
         # Set up and make plot
+        if ax is None and fig is not None:
+            return None,fig,ax
         if fig is None and ax is None:
             from matplotlib import pyplot
             fig, ax = pyplot.subplots()
@@ -299,13 +302,13 @@ class SpectraTask:
             #x_ticks = np.arange(self.wavelength[0], self.wavelength[1], 25)
             #pyplot.xticks(x_ticks)
         #spec_plot = plot_sticks(stick_spectrum,rgb,fig,ax,all_transition_origins)
-        spec_plot = plot_spectrum(broad_spectrum,rgb,fig,ax,label,linestyle,linewidth)
+        spec_plot = plot_spectrum(broad_spectrum,rgb,fig,ax,label,linestyle,linewidth,yoffs)
         if self.output is not None:
             fig.savefig(self.output)
             
         return spec_plot,fig,ax
 
-    def run(self,fig=None,ax=None,plotlabel=None,rgb=np.array((0.0,0.0,0.0)),linestyle='solid'):
+    def run(self,fig=None,ax=None,plotlabel=None,rgb=np.array((0.0,0.0,0.0)),linestyle='solid',yoffs=0):
         """
         Main routine for plotting a spectrum. Capable of applying Gaussian broadening to a stick spectrum to
         produce a broadened spectrum, and also of applying spectral warping to shift/scale the stick spectrum.
@@ -392,7 +395,7 @@ class SpectraTask:
         
         # Plot the spectrum
         if True:
-            spec_plot, fig, ax = self.plot(broad_spectrum,fig,ax,rgb,label=plotlabel,linestyle=linestyle)
+            spec_plot, fig, ax = self.plot(broad_spectrum,fig,ax,rgb,label=plotlabel,linestyle=linestyle,yoffs=yoffs)
         else:
             spec_plot = None
 
@@ -639,7 +642,7 @@ def spectral_value(wavelength,spectrum,broad):
     return abs_value
 
 def total_source_val(wavelength,intensity,spectrum,args):
-    spectral_contribution=spectral_value(wavelength,spectrum,args)
+    spectral_contribution=spectral_value(wavelength,spectrum,args.broad)
     path_length=10
     exponential_term=np.exp(-spectral_contribution*path_length)
     source_val=exponential_term*intensity
@@ -716,10 +719,10 @@ def RGB_colour(spectrum,args):
 
     return rgb
 
-def plot_spectrum(broad_spectrum,rgb,fig,ax,label,linestyle='solid',linewidth=1.5):
+def plot_spectrum(broad_spectrum,rgb,fig,ax,label,linestyle='solid',linewidth=1.5,yoffs=0):
 
     # Plot data
-    spec = ax.plot(broad_spectrum[:,0], broad_spectrum[:,1],color=rgb*(1.0/256.0),
+    spec = ax.plot(broad_spectrum[:,0], broad_spectrum[:,1]+yoffs,color=rgb*(1.0/256.0),
                    label=label,linestyle=linestyle,linewidth=linewidth)
     #pyplot.setp(spec,color=rgb*(1.0/256.0))
     #if label is not None:
