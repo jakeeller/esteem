@@ -102,7 +102,7 @@ class MACEWrapper():
         self.atom_e = 0.0
         self.atom_energies = {}
         self.atoms_on_load = None
-    
+
     def calc_filename(self,seed,target,prefix='',suffix=''):
         if target is None or target == 0:
             calcfn = seed+"_gs_"+suffix
@@ -143,8 +143,6 @@ class MACEWrapper():
             from mace.calculators import MACECalculator,EnergyDipoleMACECalculator
         except:
             from mace.calculators import MACECalculator
-        import numpy as np
-        from ase.io import read
         from os import path
 
         # Find checkpoint file(s) for calculator

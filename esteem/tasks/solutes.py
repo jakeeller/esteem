@@ -426,11 +426,6 @@ class SolutesTask:
                 min_energy, best_rota = min( (energy_rota[i],i) for i in xrange(len(energy_rota)) )
                 write(outfile,sol_opt_rota[best_rota])
 
-    # Attempt to rotate molecules to lie in xy-plane
-    # with long axis along x, short axis along y
-    # and central C(=O) atom put at (10,10,10)
-    from esteem.tasks.clusters import rotate_and_center_solute
-
     def rotate_all_to_xy_plane(self,solute_names,in_path,out_path,target=None):
         """
         Rotates each of a list of solutes so that the longest two C-C distances lie in the xy plane.
@@ -472,6 +467,10 @@ class SolutesTask:
                 write(outfile,rot)
                 continue
             try:
+                # Attempt to rotate molecules to lie in xy-plane
+                # with long axis along x, short axis along y
+                # and central C(=O) atom put at (10,10,10)
+                from esteem.tasks.clusters import rotate_and_center_solute
                 rot = rotate_and_center_solute(rot)
             except Exception as e:
                 raise Exception(f'Rotate and centre failed for {seed} with exception: {e}')

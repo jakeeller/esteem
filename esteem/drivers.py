@@ -541,7 +541,7 @@ def solvate_driver(all_solutes,all_solvents,seed,task,make_sbatch=None):
                     task.boxsize = task.boxsize[solvent]
                 else:
                     raise Exception(f"task.boxsize is a dictionary but contains no entry for solvent '{solvent}'")
-            task.setup_amber()
+            task.setup()
             task.run()
 
 
@@ -1773,14 +1773,16 @@ def spectra_driver(all_solutes,all_solvents,task,warp_params=None,cluster_spectr
         if orig_output is not None:
             task.output = sub_solu_solv_names(orig_output,f'{solute}_{solvent}',all_solutes,all_solvents)
         
-        cluster_spectrum,spec,c_fig,c_ax,_,_ = task.run(c_fig,c_ax,
+        cluster_spectrum,spec,c_fig,c_ax,all_transition_origins,stick_spectrum = task.run(c_fig,c_ax,
               plotlabel=f'{fullsolute} in {fullsolvent}',rgb=rgb)
         cluster_spectra.append(cluster_spectrum)
         
         if 'png' in task.output:
             outdat = task.output.replace('png','dat')
             np.savetxt(outdat,cluster_spectrum)
-        
+            outdat = task.output.replace('png','sticks')
+            np.savetxt(outdat,stick_spectrum)
+         
         # Return to parent directory if we are looping over dirs
         if base_path not in all_paths:
             chdir(orig_dir)

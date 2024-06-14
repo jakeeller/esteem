@@ -1,9 +1,11 @@
 from esteem import drivers, parallel
-from esteem.wrappers import nwchem, amber, onetep
+from esteem.wrappers import nwchem, amber, orca
 
 # List solutes and solvents and get default arguments
 all_solutes = {'cate': 'catechol'}
 all_solvents = {'cycl': 'cyclohexane', 'meth': 'methanol'}
+all_solutes.update(all_solvents)
+
 from esteem.tasks.solutes import SolutesTask
 from esteem.tasks.solvate import SolvateTask
 from esteem.tasks.clusters import ClustersTask
@@ -17,21 +19,23 @@ spectra_task = SpectraTask()
 # Some simple overrides for a quick job
 solutes_task.basis = '6-31G'
 solutes_task.func = 'PBE'
-solutes_task.directory = 'PBE'
+solutes_task.directory = 'gs_PBE'
 solvate_task.boxsize = 18
 solvate_task.ewaldcut = 10
 solvate_task.nsnaps = 20
+solvate_task.md_geom_prefix = 'gs_PBE/'
 clusters_task.radius = 3
 
 # Setup parallel execution of tasks
-solutes_task.wrapper = nwchem.NWChemWrapper()
+solutes_task.wrapper = orca.ORCAWrapper()
 solutes_task.script_settings = parallel.get_default_script_settings(solutes_task.wrapper)
-solutes_task.wrapper.setup()
+solutes_task.wrapper.setup(nprocs=8)
+print(solutes_task.wrapper)
 
-solvate_wrapper = amber.AmberWrapper()
+solvate_task.wrapper = amber.AmberWrapper()
 solvate_task.script_settings = parallel.get_default_script_settings(solvate_task.wrapper)
 
-clusters_wrapper = onetep.OnetepWrapper()
+clusters_task.wrapper = orca.ORCAWrapper()
 clusters_task.script_settings = parallel.get_default_script_settings(clusters_task.wrapper)
 
 # Run main driver

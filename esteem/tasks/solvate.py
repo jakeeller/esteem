@@ -176,6 +176,16 @@ class SolvateTask:
         print(system)
         convert._save_lammps(system,oname,output_status,intermol_args)
 
+    def setup(self):
+        from esteem.wrappers.amber import AmberWrapper
+        if type(self.wrapper)!=AmberWrapper:
+            orig_wrapper = self.wrapper
+            self.wrapper = AmberWrapper()
+            self.setup_amber()
+            self.wrapper = orig_wrapper
+        else:
+            self.setup_amber()
+
     # Main program for Solvated MD
     def run(self):
         """
@@ -323,7 +333,7 @@ if __name__ == '__main__':
     print(args)
     solv = SolvateTask()
     solv.wrapper = amber.AmberWrapper()
-    solv.wrapper.setup_amber()
+    solv.wrapper.setup()
     solv.run()
 
 

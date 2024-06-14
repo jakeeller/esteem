@@ -40,6 +40,8 @@ class ORCAWrapper():
             if mpi_options is None:
                 mpi_options="--oversubscribe --mca opal_warn_on_missing_libcuda 0"
             environ["ASE_ORCA_COMMAND"]=f'{orca_cmd} PREFIX.inp "{mpi_options}" >> PREFIX.out 2> PREFIX.err'
+        from ase.calculators.orca import OrcaProfile
+        self.orcaprofile=OrcaProfile(command="/storage/nanosim/orca5/orca")
         if maxcore is not None:
             self.maxcore = maxcore
         if nprocs is not None:
@@ -203,9 +205,15 @@ class ORCAWrapper():
         """Runs a singlepoint calculation with the ORCA ASE calculator"""
         basis, xc, target, disp = self.unpack_params(calc_params)
         dispstr = 'D3BJ' if disp else ''
+        methstr = '' if not forces else 'engrad '
         extra = "" # "defgrid2"
-        calc_orca = ORCA(label=label,orcasimpleinput=f"{xc} {dispstr} {basis} {extra}",
-                         orcablocks=f'%pal nprocs {self.nprocs} end\n%maxcore {self.maxcore}\n')
+        calc_orca = ORCA(label=label,orcasimpleinput=f"{methstr}{xc} {dispstr} {basis} {extra}",
+                         profile=self.orcaprofile,
+                         orcablocks=f'%pal nprocs {self.nprocs} end\n%maxcore {self.maxcore}\n', 
+                         mult = int(2*spin+1), charge=charge)
+        calc_orca.template.inputname = label + ".inp"
+        calc_orca.template.outputname = label + ".out"
+
         if (target is not None) and (target != 0):
             self._add_tddft(calc_orca,target,target)
         if solvent is not None:
@@ -213,13 +221,16 @@ class ORCAWrapper():
         if self.scf_block is not None:
             calc_orca.parameters['orcablocks'] += self.scf_block
         # Set up spin
-        calc_orca.set(mult=int(2*spin+1))
+        #calc_orca.set(mult=int(2*spin+1))
         # Set up charge
-        calc_orca.set(charge=charge)
+        #calc_orca.set(charge=charge)
         model.calc = calc_orca
         if readonly:
             calc_orca.atoms = model
-            calc_orca.read_results() # skip calculation
+            from ase.calculators.singlepoint import SinglePointCalculator
+            results = calc_orca.template.read_results(calc_orca.directory) # skip calculation
+            calc_orca = SinglePointCalculator(atoms=model,**results)
+            model.calc = calc_orca
         if calconly:
             return calc_orca
         if not readonly:
@@ -253,8 +264,16 @@ class ORCAWrapper():
         """Runs a Geometry Optimisation calculation with the ORCA ASE calculator"""
         basis, xc, target, disp = self.unpack_params(calc_params)
         dispstr = 'D3BJ' if disp else ''
-        calc_orca = ORCA(label=label,orcasimpleinput=f"{xc} {dispstr} {basis}",
-                         orcablocks=f'%pal nprocs {self.nprocs} end\n%maxcore {self.maxcore}\n')
+        methstr = ''
+        extra = ''
+        taskstr = 'opt'
+        if driver_tol.lower().find('tight') > -1:
+            taskstr = driver_tol+'opt'
+        calc_orca = ORCA(label=label,orcasimpleinput=f"{taskstr} {methstr}{xc} {dispstr} {basis} {extra}",profile=self.orcaprofile,
+                         orcablocks=f'%pal nprocs {self.nprocs} end\n%maxcore {self.maxcore}\n', 
+                         mult = int(2*spin+1), charge=charge, task='opt')
+        calc_orca.template.inputname = label + ".inp"
+        calc_orca.template.outputname = label + ".out"
         if (target is not None) and (target!=0):
             self._add_tddft(calc_orca,target,target)
         if solvent is not None:
@@ -273,13 +292,11 @@ class ORCAWrapper():
                                       '{ C' + ' '.join([str(i) for i in constr.index]) + 'C }\n')
             constraint_str = constraint_str + "end\nend\n"
         # Set up spin
-        calc_orca.set(mult=int(2*spin+1))
+        #calc_orca.set(mult=int(2*spin+1))
         # Set up charge
-        calc_orca.set(charge=charge)
+        #calc_orca.set(charge=charge)
         # Set task
-        calc_orca.set(task='opt')
-        if driver_tol.lower().find('tight') > -1:
-            calc_orca.set(task=driver_tol+'opt')
+        #calc_orca.set(task='opt')
         model_opt.calc = calc_orca
         if calconly:
             return calc_orca    
@@ -298,22 +315,25 @@ class ORCAWrapper():
             self.return_from_tempdir(label)
         return energy, forces, model_opt.positions
 
-    def freq(self,model_opt,label,calc_params={},solvent=None,charge=0,
+    def freq(self,model_opt,label,calc_params={},solvent=None,charge=0,spin=0,
              temp=300,writeonly=False,readonly=False,continuation=False,
              cleanup=True,summary=False):
         """Runs a Vibrational Frequency calculation with the ORCA ASE calculator"""
         basis, xc, target, disp = self.unpack_params(calc_params)
         dispstr = 'D3BJ' if disp else ''
+        taskstr = 'freq'
         calc_orca = ORCA(label=label,orcasimpleinput=f"{xc} {dispstr} {basis}",
-                         orcablocks=f'%pal nprocs {self.nprocs} end\n%maxcore {self.maxcore}\n')
+                         profile=self.orcaprofile,
+                         orcablocks=f'%pal nprocs {self.nprocs} end\n%maxcore {self.maxcore}\n',
+                         mult = int(2*spin+1), charge=charge)
+        calc_orca.template.inputname = label + ".inp"
+        calc_orca.template.outputname = label + ".out"
         if (target is not None) and (target != 0):
             self._add_tddft(calc_orca,target,target)
         if solvent is not None:
             self._add_solvent(calc_orca,solvent)
         if self.scf_block is not None:
             calc_orca.parameters['orcablocks'] += self.scf_block
-        calc_orca.set(charge=charge)
-        calc_orca.set(task='freq')
 
         model_opt.calc = calc_orca
         if readonly:
@@ -337,15 +357,20 @@ class ORCAWrapper():
             self.cleanup(label)
 
     def run_md(self,model,steplabel,calc_params,qmd_steps,qmd_timestep,superstep,temp,
-                solvent=None,charge=0,continuation=False,readonly=False,
+                solvent=None,charge=0,spin=0,continuation=False,readonly=False,
                 constraints=None,dynamics=None,cleanup=True):
         """Runs a Quantum Molecular Dynamics calculation with the ORCA ASE calculator"""
         import random
 
         basis, xc, target, disp = self.unpack_params(calc_params)
         dispstr = 'D3BJ' if disp else ''
+        taskstr = 'md'
         calc_orca = ORCA(label=steplabel,orcasimpleinput=f"{xc} {dispstr} {basis}",
-                         orcablocks=f'%pal nprocs {self.nprocs} end\n%maxcore {self.maxcore}\n')
+                         profile=self.orcaprofile,
+                         orcablocks=f'%pal nprocs {self.nprocs} end\n%maxcore {self.maxcore}\n',
+                         mult = int(2*spin+1), charge=charge)
+        calc_orca.template.inputname = label + ".inp"
+        calc_orca.template.outputname = label + ".out"
         timecon = 10.0
         random.seed(steplabel)
         randseed = random.randint(0,100000)
@@ -369,8 +394,6 @@ end
             calc_orca.set(constraints=constraints)
         if self.scf_block is not None:
             calc_orca.parameters['orcablocks'] += self.scf_block
-        calc_orca.set(charge=charge)
-        calc_orca.set(task='md')
         model.calc = calc_orca
         if readonly:
             print("Reading results")
@@ -393,7 +416,7 @@ end
         print(superstep,calc_orca.label,energy,forces[0],model.positions[0])
         return None
 
-    def excitations(self,model,label,calc_params={},nroots=1,solvent=None,charge=0,
+    def excitations(self,model,label,calc_params={},nroots=1,solvent=None,charge=0,spin=0,
                     writeonly=False,readonly=False,continuation=False,cleanup=True,
                     plot_homo=None,plot_lumo=None,plot_trans_den=None):
         """Calculates TDDFT excitations with the ORCA ASE calculator"""
@@ -401,13 +424,14 @@ end
         basis, xc, target, disp = self.unpack_params(calc_params)
         dispstr = 'D3BJ' if disp else ''
         calc_orca = ORCA(label=label,orcasimpleinput=f"{xc} {dispstr} {basis}",
-                         orcablocks=f'%pal nprocs {self.nprocs} end\n%maxcore {self.maxcore}\n')
-
+                         profile=self.orcaprofile,
+                         orcablocks=f'%pal nprocs {self.nprocs} end\n%maxcore {self.maxcore}\n',
+                         mult = int(2*spin+1), charge=charge, task='energy')
+        calc_orca.template.inputname = label + ".inp"
+        calc_orca.template.outputname = label + ".out"
         self._add_tddft(calc_orca,nroots,target=None)
         if solvent is not None:
             self._add_solvent(calc_orca,solvent)
-        calc_orca.set(charge=charge)
-        calc_orca.set(task='energy')
         if self.scf_block is not None:
             calc.parameters['orcablocks'] += self.scf_block
         model.calc = calc_orca
@@ -432,7 +456,10 @@ end
     def read_excitations(self,calc):
         """Read Excitations from ORCA calculator."""
 
-        filename = calc.label+'.out'
+        if hasattr(calc,'label'):
+            filename = calc.label+'.out'
+        else:
+            filename = calc.template.outputname
         file = open(filename, 'r')
         lines = file.readlines()
         file.close()
@@ -456,7 +483,10 @@ end
                     #print(line)
                     root = int(line.split()[0])
                     energy = float(line.split()[1])*invcm
-                    osc = float(line.split()[3])
+                    if 'spin' in line.split()[3]:
+                        osc = 0.0
+                    else:
+                        osc = float(line.split()[3])
                     s_excit.append((root,energy,osc))
         calc.results['excitations'] = np.array(s_excit)
         calc.results['transition_origins'] = trans_lines

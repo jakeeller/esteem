@@ -141,7 +141,13 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
                 fullsuffix = f"{targstr1}_{traj_suffix}"
             else:
                 fullsuffix = truth
-            for seed in seeds:
+            # handle case where seeds is a dictionary, and keys are target,suffix tuples
+            if (isinstance(seeds,dict)):
+               seeds_list = seeds[targstr1,traj_suffix]
+            else:
+               seeds_list = seeds
+            # Loop over seeds
+            for seed in seeds_list:
                 all_keys = get_keys(task)
                 targstr2 = targstr
                 if seed=='{solv}_{solv}' and targstr2=='es1':
@@ -153,17 +159,21 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
                         traj_dest = f"{seed}_{dir_suffix}/{seed}_{targstr2}_{trajsource}_{fullsuffix}.traj"
                         if key=='train':
                             task.traj_links[offset+traj] = traj_dest
-                            task.which_trajs += [offset+i for i in all_traj[passed[target1]:]]
-                            #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs}')
+                            #task.which_trajs += [offset+i for i in all_traj[passed[target1]:]]
+                            task.which_trajs += [offset+all_traj[passed[target1]:][itraj]]
+                            #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs} (seed={seed}, itarg1={itarg1}, itraj={itraj}, passed[{target1}]={passed[target1]}')
                         elif key=='valid':
                             task.traj_links_valid[offset+traj] = traj_dest
-                            task.which_trajs_valid += [offset+i for i in all_traj[passed[target1]:]]
+                            #task.which_trajs_valid += [offset+i for i in all_traj[passed[target1]:]]
+                            task.which_trajs_valid += [offset+all_traj[passed[target1]:][itraj]]
                             #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs_valid}')
                         elif key=='test':
                             task.traj_links_test[offset+traj] = traj_dest
-                            task.which_trajs_test += [offset+i for i in all_traj[passed[target1]:]]
+                            task.which_trajs_test += [offset+all_traj[passed[target1]:][itraj]]
+                            #task.which_trajs_test += [offset+i for i in all_traj[passed[target1]:]]
                             #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs_test}')
                     passed[target1] += ntraj[targstr1,traj_suffix]
+                    #print(f'passed[{target1}]={passed[target1]}')
                     if passed[target1] > 26:
                         print('# Warning: more than 26 input trajectories for this target')
                         print('# Please ensure no overlap with other targets:')
@@ -210,6 +220,12 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
             targstrp = targets[targetp]
             # Loop over all dir suffixes and seeds
             for dir_suffix in iter_dir_suffixes:
+                # handle case where seeds is a dictionary, and keys are target,suffix tuples
+                #if (isinstance(seeds,dict)):
+                #   seeds_list = seeds[targstr1,dir_suffix]
+                #else:
+                #seeds_list = seeds
+                # Loop over seeds
                 for seed in seeds:
                     # temporary hack - will need a better way to skip this
                     if (seed=='{solv}_{solv}' and targstrp=='es1'):

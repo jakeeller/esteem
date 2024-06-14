@@ -603,11 +603,11 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
                 ir.clean()
             # Try to run or read the energy, forces and dipole for this frame
             success = False
-            try:
-                results = wrapper.singlepoint(frame,label,calc_params,
+            results = wrapper.singlepoint(frame,label,calc_params,
                                               solvent=solvent,charge=charge,
                                               forces=calc_forces,dipole=calc_dipole,
                                               continuation=cont,readonly=readonly)
+            try:
                 if calc_forces and calc_dipole:
                     energy, forces, dipole, calc = results
                 elif calc_forces and not calc_dipole:
