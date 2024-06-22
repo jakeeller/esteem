@@ -102,6 +102,7 @@ class MACEWrapper():
         self.atom_e = 0.0
         self.atom_energies = {}
         self.atoms_on_load = None
+        self.output = "mace"
 
     def calc_filename(self,seed,target,prefix='',suffix=''):
         if target is None or target == 0:
@@ -322,7 +323,13 @@ class MACEWrapper():
                     del train_args[arg]
         if 'wandb_log_hypers' in train_args:
             del train_args['wandb_log_hypers']
-        for arg in ['save_cpu','restart_latest','keep_checkpoints','ema','swa','amsgrad','wandb']:
+        for arg in train_args:
+            if train_args[arg] is False:
+                print(arg)
+        for arg in ['save_cpu','restart_latest','keep_checkpoints','ema','swa','amsgrad',
+                    'wandb','mean','std','distributed','save_all_checkpoints',
+                    'foundation_model','foundation_model_readout','pair_repulsion',
+                    'statistics_file','atomic_numbers']:
             if arg in train_args:
                 if train_args[arg] is not True:
                     del train_args[arg]

@@ -301,9 +301,10 @@ def create_mltrain_tasks(train_task,train_calcs,seeds,targets,rand_seed,meth,tru
             # extra epochs for each generation
             if 'max_num_epochs' in train_task.wrapper.train_args:  # MACE specific
                 gen = get_gen_from_calc(t)
-                train_task.wrapper.train_args['max_num_epochs'] = init_epochs + gen*delta_epochs
-                # same number of extra epochs for SWA
-                train_task.wrapper.train_args['start_swa'] = swa_init_epochs + gen*delta_epochs
+                if gen is not None:
+                    train_task.wrapper.train_args['max_num_epochs'] = init_epochs + gen*delta_epochs
+                    # same number of extra epochs for SWA
+                    train_task.wrapper.train_args['start_swa'] = swa_init_epochs + gen*delta_epochs
             # Save this calculator to the list for each seed
             for rs in rand_seed:
                 # Seed-specific info

@@ -64,6 +64,7 @@ class AmberWrapper():
         
         self.acpype_charge_type = 'bcc'
         self.acpype_atom_type = 'amber'
+        self.output = "amber"
 
         self.amber_exe_serial = 'sander -O '
         if which('sander.MPI'):

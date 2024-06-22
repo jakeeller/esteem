@@ -25,6 +25,7 @@ class ORCAWrapper():
         self.nprocs = 24
         self.maxcore = 2000
         self.temproot = "/tmp"
+        self.output = "orca"
         self.origdir = None
         self.exts_to_link = ['out','err','gbw','cis','inp','engrad','_property.txt','mdrestart']
         self.exts_to_save = ['log','txt','xyz','hess','engrad']
@@ -453,13 +454,13 @@ end
             self.cleanup(label)
         return s_excit, energy
 
-    def read_excitations(self,calc):
+    def read_excitations(self,filename):
         """Read Excitations from ORCA calculator."""
 
-        if hasattr(calc,'label'):
-            filename = calc.label+'.out'
-        else:
-            filename = calc.template.outputname
+        #if hasattr(calc,'label'):
+        #    filename = calc.label+'.out'
+        #else:
+        #    filename = calc.template.outputname
         file = open(filename, 'r')
         lines = file.readlines()
         file.close()
@@ -488,9 +489,9 @@ end
                     else:
                         osc = float(line.split()[3])
                     s_excit.append((root,energy,osc))
-        calc.results['excitations'] = np.array(s_excit)
-        calc.results['transition_origins'] = trans_lines
-        return s_excit
+        #calc.results['excitations'] = np.array(s_excit)
+        #calc.results['transition_origins'] = trans_lines
+        return s_excit,trans_lines
 
     def read_freq(self,calc):
         """Read Vibrational Frequencies and Normal Modes from results of ORCA calculator."""

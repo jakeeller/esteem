@@ -1,17 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
-
-
 """Task that generates and plots uv/vis Spectra for solutes in solvent.
 Also contains routines to calculate spectral warp parameters and RGB colours from spectra"""
 
-
-# # Main Routine
-
-# In[ ]:
-
+## Main Routine
 
 import numpy as np
 wavelength_eV_conv=1239.84193
@@ -29,38 +22,17 @@ class SpectraTask:
     
     def read_excitations(self):
 
-        from ase.calculators.onetep import Onetep;
-        from ase.calculators.nwchem import NWChem;
-        from ase.calculators.orca import ORCA;
-        from esteem.wrappers import onetep
-        from esteem.wrappers import nwchem
-        from esteem.wrappers import orca
         from ase.io import Trajectory
         import os
 
-        #validate_args(self)
         all_excitations = []
         all_transition_origins = []
 
         if self.inputformat is None and self.trajectory is not None:
             self.inputformat = 'traj'
-        if self.inputformat.lower()=="nwchem":
-            calc=NWChem(label="temp")
-            wrapper=nwchem.NWChemWrapper()
-            read_excitations = wrapper.read_excitations
-        elif self.inputformat.lower()=="onetep":
-            calc=Onetep(label="temp")
-            wrapper=onetep.OnetepWrapper()
-            read_excitations = wrapper.read_excitations
-        elif self.inputformat.lower()=="orca":
-            wrapper=orca.ORCAWrapper()
-            wrapper.setup()
-            calc=ORCA(label="temp",profile=wrapper.orcaprofile)
-            read_excitations = wrapper.read_excitations
+        elif hasattr(self.inputformat,'read_excitations'):
+            read_excitations = self.inputformat.read_excitations
         elif self.inputformat.lower()=="precalculated":
-            from types import SimpleNamespace
-            wrapper = None
-            calc = SimpleNamespace()
             all_excitations = np.zeros((0,2))
             read_excitations = self.read_precalculated
         elif self.inputformat.lower()=="traj":
@@ -70,8 +42,6 @@ class SpectraTask:
                 raise Exception("Must specify trajectories if inputformat==traj")
             if type(self.trajectory)!=list:
                 raise Exception("Must specify trajectories as list if inputformat==traj")
-        else:
-            raise Exception('Unrecognised input format. The value of inputformat was: {}'.format(self.inputformat))
 
         # Load pre-calculated vibronic transitions, if supplied 
         if self.vib_files is not None:
@@ -223,15 +193,10 @@ class SpectraTask:
             for f in self.files:
                 if not os.path.isfile(f):
                     raise OSError(f'# Could not read file {f}')
-                #try:
-                label = f.replace(".nwo","")
-                label = label.replace(".out","")
-                calc.label = label
-                #calc.read(label)
-                read_excitations(calc)
+                stick_spectrum, transition_origins = read_excitations(f)
                 if self.vib_files is not None:
                     vibronic_excitations = []
-                    s_elec = calc.results['excitations']
+                    s_elec = stick_spectrum
                     for e in s_elec:
                         for v in vib_sticks:
                             sign = -1 if self.mode=='emission' else 1
@@ -240,17 +205,12 @@ class SpectraTask:
                     all_excitations.append(vibronic_excitations)
                 else:
                     if type(all_excitations)==np.ndarray:
-                        all_excitations = np.append(all_excitations,calc.results['excitations'],axis=0)
+                        all_excitations = np.append(all_excitations,stick_spectrum,axis=0)
                     else:
-                        all_excitations.append(calc.results['excitations'])
-                if self.inputformat.lower()=="nwchem":
-                    all_transition_origins.append(calc.results['transition_origins'])
-                #calc.read(label)
-                #except:
-                #    print(f'Reading excitations failed for: {f}')
+                        all_excitations.append(stick_spectrum)
+                all_transition_origins.append(transition_origins)
 
         stick_spectrum = []
-        #print(all_excitations,np.array(all_excitations))
         all_excitations = np.array(all_excitations)
         if len(all_excitations.shape)==1:
             for i in all_excitations:
@@ -285,8 +245,6 @@ class SpectraTask:
                 return vib_sticks
         else:
             return vib_sticks
-        # Normalise
-        #vib_sticks[:,1] = vib_sticks[:,1] / np.max(vib_sticks[:,1])
         return vib_sticks
 
     def plot(self,broad_spectrum,fig,ax,rgb,label,linestyle='solid',linewidth=1.5,yoffs=0):
@@ -299,9 +257,6 @@ class SpectraTask:
             fig, ax = pyplot.subplots()
             ax.set_xlabel('Wavelength (nm)')
             ax.set_ylabel('Absorbtion (arb)')
-            #x_ticks = np.arange(self.wavelength[0], self.wavelength[1], 25)
-            #pyplot.xticks(x_ticks)
-        #spec_plot = plot_sticks(stick_spectrum,rgb,fig,ax,all_transition_origins)
         spec_plot = plot_spectrum(broad_spectrum,rgb,fig,ax,label,linestyle,linewidth,yoffs)
         if self.output is not None:
             fig.savefig(self.output)
@@ -448,11 +403,6 @@ class SpectraTask:
 
 
 # # Helper Routines
-
-# In[ ]:
-
-
-
 def find_spectral_warp_params(args,dest_spectrum,origin_spectrum,arrow1_pos=None,arrow2_pos=None):
         """
         Finds spectral warping parameters via a range of schemes. See spectra documentation page
@@ -724,27 +674,16 @@ def plot_spectrum(broad_spectrum,rgb,fig,ax,label,linestyle='solid',linewidth=1.
     # Plot data
     spec = ax.plot(broad_spectrum[:,0], broad_spectrum[:,1]+yoffs,color=rgb*(1.0/256.0),
                    label=label,linestyle=linestyle,linewidth=linewidth)
-    #pyplot.setp(spec,color=rgb*(1.0/256.0))
-    #if label is not None:
-    #    ax.legend()
     return spec
 
 def plot_sticks(stick_spectrum,rgb,fig,ax,labels):
 
     # Plot data
-    #print(stick_spectrum[:,0])
-    #print(stick_spectrum[:,1])
     spec = ax.stem(stick_spectrum[:,0], stick_spectrum[:,1],color=rgb*(1.0/256.0))
-    #spec = ax.stem([0,1,2],[12,51,1])
-    #pyplot.setp(spec,color=rgb*(1.0/256.0))
     return spec
 
 
 # # Command-line driver
-
-# In[ ]:
-
-
 def get_parser():
     return SpectraTask().make_parser()
 

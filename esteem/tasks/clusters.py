@@ -1,16 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
-
-
 """Performs processing of Molecular Dynamics Trajectories to enable use of the results in further tasks
    such as extraction of cluster models centered on the solute molecule, including all solvent molecules
    within a given range, for the purpose of ML training or explicit solvent spectroscopy"""
-
-
-# In[ ]:
-
 
 class ClustersTask:
 
@@ -21,6 +14,16 @@ class ClustersTask:
         args = self.make_parser().parse_args("")
         for arg in vars(args):
             setattr(self,arg,getattr(args,arg))
+    
+    @property
+    def wrapper(self):
+        return self._wrapper
+    
+    @wrapper.setter
+    def wrapper(self,wrapper):
+        self._wrapper = wrapper
+        if hasattr(wrapper,'output'):
+            self.output = wrapper.output
 
     def run(self,dryrun=False):
         """
