@@ -4,8 +4,6 @@
 """Task that generates and plots uv/vis Spectra for solutes in solvent.
 Also contains routines to calculate spectral warp parameters and RGB colours from spectra"""
 
-## Main Routine
-
 import numpy as np
 wavelength_eV_conv=1239.84193
 
@@ -366,6 +364,8 @@ class SpectraTask:
         parser.add_argument('--files','-f',nargs='*',default=[],type=str,help='List of output files from which to generate spectrum')
         parser.add_argument('--vib_files','-v',nargs='*',default=None,type=str,help='List of output files from which to generate spectrum')
         parser.add_argument('--trajectory','-t',nargs='*',default=None,type=str,help='Trajectory file for input')
+        parser.add_argument('--correction_trajectory',nargs='*',default=None,type=str,help='Trajectory file for input')
+        parser.add_argument('--vibration_trajectory',nargs='*',default=None,type=str,help='Trajectory file for input')
         parser.add_argument('--max_frames','-M',default=None,type=int,help='Maximum number of frames to process')
         parser.add_argument('--start_frame','-S',default=0,type=int,help='Starting point of frames to process')
         parser.add_argument('--stride_frames','-F',default=1,type=int,help='Stride for frames to process')

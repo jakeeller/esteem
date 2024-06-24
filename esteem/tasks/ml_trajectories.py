@@ -1,19 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
-
-
 """Defines a task to use a Machine Learning calculator to generate
 Molecular Dynamics trajectories, and also to process the results
 to generate infrared spectra from trajectory data"""
 
 
 # # Main Routine
-
-# In[ ]:
-
-
 # Load essential modules
 import sys
 import os
@@ -168,6 +161,8 @@ class MLTrajTask:
         parser.add_argument('--recalculate_carved_traj','-J',default=False,type=bool,help='Use snap_wrapper (if present, wrapper if not) to recalculate energies and forces after carving')
         parser.add_argument('--constraints','-c',default=None,type=str,help='Constraints (ASE constraints class)')
         parser.add_argument('--dynamics','-d',default=None,type=str,help='Dynamics (ASE Dynamics class)')
+        parser.add_argument('--carved_suffix',default=None,type=str,help='Suffix of mltraj output files corresponding to the size of carved clusters')
+        parser.add_argument('--corr_traj', default=False, type=bool, help='Boolean specifying whether to carve and recalculate correction trajectories')
 
         return parser
 
@@ -176,10 +171,6 @@ class MLTrajTask:
         for arg in vars(args):
             if arg not in default_args:
                 raise Exception(f"Unrecognised argument '{arg}'")
-
-
-# In[ ]:
-
 
 def load_trajectory_dipole(seed_state_str,traj_suffix,ntraj,nsnaps,mdsteps,extension='.traj'):
     '''
@@ -239,10 +230,6 @@ def calculate_ir_spectrum(mu_t,dt,freq_scale_fac,sigma):
 
 
 # # Command-line driver
-
-# In[ ]:
-
-
 def get_parser():
     mltraj = MLTrajTask()
     return mltraj.make_parser()

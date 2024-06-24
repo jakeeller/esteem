@@ -408,12 +408,12 @@ class ClustersTask:
 
         which_targstr = targstr(self.which_target)
         if task_id is not None:
-            traj_nosolu_name = f'{soluseed}_{solvseed}_{which_targstr}_{self.which_traj}_carved_nosolu_{task_id:04}.traj'
+            traj_nosolu_name = f'{soluseed}_{solvseed}_{which_targstr}_{self.which_traj}_{self.carved_suffix}_nosolu_{task_id:04}.traj'
             traj_min = 0
             traj_max = 1
             traj_carved = traj_carved[traj_min:traj_max]
         else:
-            traj_nosolu_name = f'{soluseed}_{solvseed}_{which_targstr}_{self.which_traj}_carved_nosolu.traj'
+            traj_nosolu_name = f'{soluseed}_{solvseed}_{which_targstr}_{self.which_traj}_{self.carved_suffix}_nosolu.traj'
             task_id = 0
         traj_nosolu = Trajectory(traj_nosolu_name,"w")
         nat_solu = len(read(soluseed+".xyz"))

@@ -1,20 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 """
 Functions to help generate and manipulate trajectories
 """
-
-
-# # Generic MD driver
-
-# In[ ]:
-
-
-# Generate training (or test) data
 from ase.io import read, write
 from ase.io.trajectory import Trajectory
 from ase.units import Bohr
@@ -461,11 +450,6 @@ def find_initial_geometry(seed,geom_opt_func=None,calc_params={},which_traj=None
     return model
 
 
-# # Recalculate energies based on an existing input trajectory
-
-# In[ ]:
-
-
 def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input_suffix,
                            wrapper,calc_params,input_traj_range=None,input_traj_label=None,
                            output_traj_offset=0,charge=0,solvent=None,
@@ -510,8 +494,9 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
         # Check if output trajectory already exists
         output_traj = f"{seed}_{targstr(targ)}_{traj_label}_{traj_suffix}.traj"
         if output_traj_offset>0 or (len(input_traj_range)==1 and output_traj_offset==0):
-            print(f"# Not writing to output trajectory as range is subset of trajectory.")
-            print(f"# Post-process to combine whole trajectory.")
+            if targ==all_targets[0]:
+                print(f"# Not writing to output trajectory as range is subset of trajectory.")
+                print(f"# Post-process to combine whole trajectory.")
             outtraj[targ] = None
         elif path.isfile(output_traj):
             # Delete it and start afresh
@@ -735,9 +720,6 @@ def cycle_restarts(seed,traj_label,traj_suffix,prevtarg,currtarg,prevstep,currst
 
 
 # # Other tools to manage trajectories
-
-# In[ ]:
-
 
 def get_trajectory_list(ntraj):
     """

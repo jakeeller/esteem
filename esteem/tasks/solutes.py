@@ -241,7 +241,7 @@ class SolutesTask:
         from os import path, makedirs, getcwd, chdir
 
         if solvent is not None:
-            sol_str = f'in {self.solvstr(solvent)} solvent '
+            sol_str = f'in {self.solvstr(solvent)} solvent'
         else:
             sol_str = ''
 
@@ -594,7 +594,7 @@ class SolutesTask:
         from os import path, makedirs, getcwd, chdir
 
         if solvent is not None:
-            sol_str = f'in {self.solvstr(solvent)} solvent '
+            sol_str = f'in {self.solvstr(solvent)} solvent'
         else:
             sol_str = ''
         target = calc_params['target']
@@ -645,7 +645,8 @@ class SolutesTask:
                     raise Exception('Syntax Error:',e)
                 except Exception as e:
                     print('Excited state calculation failed for: ',seed)
-                    print('Exception was: ',e)
+                    import traceback
+                    traceback.print_exception(e)
                 write(origdir+"/"+outfile,solute[0:iconf+1])
             chdir(origdir)
 
@@ -676,7 +677,7 @@ class SolutesTask:
         from os import path, makedirs, getcwd, chdir
 
         if solvent is not None:
-            sol_str = f'in {self.solvstr(solvent)} solvent '
+            sol_str = f'in {self.solvstr(solvent)} solvent'
         else:
             sol_str = ''
         wdir = f'{out_path}'

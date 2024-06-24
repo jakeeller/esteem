@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
 
 
 """
@@ -10,8 +9,6 @@ Settings and script-writers to run ESTEEM tasks in serial or parallel
 
 
 # # Make batch scripts
-
-# In[7]:
 
 
 from copy import deepcopy
@@ -179,6 +176,8 @@ def get_default_script_settings(wrapper):
                                    set_pseudo_path='~/NCP17_PBE_OTF/',
                                    set_pseudo_suffix="_NCP17_PBE_OTF.usp")
         if isinstance(wrapper,PhysNetWrapper):
+            script_settings = deepcopy(avon_1gpu)
+        if isinstance(wrapper,MACEWrapper):
             script_settings = deepcopy(avon_1gpu)
         if isinstance(wrapper,ORCAWrapper):
             script_settings = deepcopy(avon_1node_gnu)

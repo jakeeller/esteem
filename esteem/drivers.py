@@ -113,11 +113,15 @@ def main(all_solutes,all_solvents,all_solutes_tasks={},all_solvate_tasks={},
         solvents_driver(all_solvents,solutes_task)
     if ('solvate' in task.split()):
         solvate_task = get_actual_args(all_solvate_tasks,target,'solvate')
+        if solvate_task.script_settings is None:
+            solvate_task.script_settings = {}
         solvate_task.script_settings['target'] = target
         solvate_task.script_settings['scriptname'] = scriptname
         solvate_driver(all_solutes,all_solvents,seed,solvate_task,make_script)
     if (any('clusters' in t for t in task.split()) or any('mlclus' in t for t in task.split())): 
         clusters_task = get_actual_args(all_clusters_tasks,target,'clusters')
+        if clusters_task.script_settings is None:
+            clusters_task.script_settings = {}
         clusters_task.script_settings['target'] = target
         clusters_task.script_settings['scriptname'] = scriptname
         if any('setup' in t for t in task.split()):
@@ -743,10 +747,12 @@ def clusters_driver(all_solutes,all_solvents,seed,task,make_sbatch=None,dryrun=F
                 task.impsolv = solvent
             # If we provided a dictionary for the radius, find the specific entry that we need
             if isinstance(task.radius,dict):
-                if solvent in task.radius:
+                if f'{solute}_{solvent}' in task.radius:
+                    task.radius = task.radius[f'{solute}_{solvent}']
+                elif solvent in task.radius:
                     task.radius = task.radius[solvent]
                 else:
-                    raise Exception(f"task.radius is a dictionary but contains no entry for solvent '{solvent}'")
+                    raise Exception(f"task.radius is a dictionary but contains no entry for '{solute}_{solvent}' or '{solvent}'")
             if hasattr(task,'calc_seed'):
                 if task.calc_seed is not None:
                     seed = f'{solute}_{solvent}' if solvent is not None else solute
@@ -1401,10 +1407,13 @@ def mltraj_driver(mltraj,all_solutes,all_solvents,cleanup_only=False):
     if mltraj.carve_trajectory_radius is not None:
         # If we provided a dictionary for the radius, find the specific entry that we need
         if isinstance(mltraj.carve_trajectory_radius,dict):
-            if solv in mltraj.carve_trajectory_radius:
+            solu_solv = f'{solute}_{solvent}'
+            if solu_solv in mltraj.carve_trajectory_radius:
+                mltraj.carve_trajectory_radius = mltraj.carve_trajectory_radius[solu_solv]
+            elif solv in mltraj.carve_trajectory_radius:
                 mltraj.carve_trajectory_radius = mltraj.carve_trajectory_radius[solv]
             else:
-                raise Exception(f"mltraj.carve_trajectory_radius is a dictionary but contains no entry for solvent '{solv}'")
+                raise Exception(f"mltraj.carve_trajectory_radius is a dictionary but contains no entry for '{solu_solv}' or '{solv}'")
         mltraj_cleanup(mltraj)
 
 def mltraj_cleanup(mltraj):
@@ -1413,12 +1422,15 @@ def mltraj_cleanup(mltraj):
     from esteem.trajectories import get_trajectory_list,targstr
 
     ct = ClustersTask()
+    ct.repeat_without_solute = True if mltraj.corr_traj else False
     ct.solute,ct.solvent = get_solu_solv_names(mltraj.seed)
     ct.which_target = mltraj.target
     for ct.which_traj in mltraj.which_trajs:
         ct.min_snapshots = 0;
         ct.max_snapshots = mltraj.nsnap
         ct.max_atoms = mltraj.carve_trajectory_max_atoms
+        if mltraj.carved_suffix is None:
+            mltraj.carved_suffix = "carved"
         ct.carved_suffix = f"{mltraj.traj_suffix}_{mltraj.carved_suffix}"
         ct.md_suffix = f"{targstr(ct.which_target)}_{ct.which_traj}_{mltraj.traj_suffix}"
         solvstr = f'_{ct.solvent}' if ct.solvent is not None else ''
@@ -1435,8 +1447,18 @@ def mltraj_cleanup(mltraj):
             ct.target = mltraj.snap_calc_params['target']
             ct.nroots = mltraj.target
             traj_recalc_file = f'{ct.solute}{solvstr}_{targstr(ct.which_target)}_{ct.which_traj}_{ct.output}.traj'
-            if path.exists(traj_recalc_file) and path.getsize(traj_recalc_file)>0:
-                print(f'# Skipping recalculating clusters in postprocessing - {traj_recalc_file} already present')
+            all_results_present = True
+            all_results_present = (all_results_present and 
+                                   path.exists(traj_recalc_file) and 
+                                   path.getsize(traj_recalc_file)>0)
+            all_traj_recalc_files = traj_recalc_file
+            if mltraj.corr_traj:
+                all_traj_recalc_files = all_traj_recalc_files + f'and {traj_recalc_file_nosolu}'
+                all_results_present = (all_results_present and 
+                                       (path.exists(traj_recalc_file_nosolu) and 
+                                        path.getsize(traj_recalc_file_nosolu)>0))
+            if all_results_present:
+                print(f'# Skipping recalculating clusters in postprocessing - {all_traj_recalc_files} already present')
             else:
                 ct.run()
         if mltraj.store_full_traj:
@@ -1789,12 +1811,6 @@ def spectra_driver(all_solutes,all_solvents,task,warp_params=None,cluster_spectr
 
 
     return cluster_spectra,c_fig,c_ax
-
-
-# # Helper functions
-
-# In[ ]:
-
 
 # return args objects with default values for each script
 from esteem.tasks import solutes, solvate, clusters, spectra

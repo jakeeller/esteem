@@ -1,16 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
-
-
 """Sets up and runs solvated Molecular Dynamics in Explicit Solvent"""
 
-
 # # Setup routine for the Solvate task
-
-# In[ ]:
-
 
 # From J. Chem. Phys. 148, 024110 (2018)
 # The dyes are placed in large solvent boxes (see Table I for
@@ -308,7 +301,7 @@ class SolvateTask:
         parser.add_argument('--restraints','-R',default=None,action='append',nargs=4,type=str,help='Specifies restraint atoms')
         parser.add_argument('--rest_r','-r',default=None,nargs=6,type=float,help='Specifies parameters for restraint')
         parser.add_argument('--md_suffix','-m',default='md',nargs='?',type=str,help=SUPPRESS)
-        parser.add_argument('--md_geom_prefix',default='gs_PBE0/is_opt',nargs='?',type=str,help=SUPPRESS)
+        parser.add_argument('--md_geom_prefix',default='gs_PBE0',nargs='?',type=str,help=SUPPRESS)
         parser.add_argument('--counterions','-C',default={},type=str,help='Counterion(s) to add, eg Na')
         # Wrapper Dependent
         parser.add_argument('--ewaldcut','-e',default=12.0,type=float,help='Cutoff length for Ewald calculation (See Amber manual)')

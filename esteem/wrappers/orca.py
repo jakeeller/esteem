@@ -221,10 +221,6 @@ class ORCAWrapper():
             self._add_solvent(calc_orca,solvent)
         if self.scf_block is not None:
             calc_orca.parameters['orcablocks'] += self.scf_block
-        # Set up spin
-        #calc_orca.set(mult=int(2*spin+1))
-        # Set up charge
-        #calc_orca.set(charge=charge)
         model.calc = calc_orca
         if readonly:
             calc_orca.atoms = model
@@ -442,13 +438,13 @@ end
         if readonly:
             calc_orca.read_results()
             print("Reading excitations")        
-            s_excit = self.read_excitations(calc_orca)
+            s_excit = self.read_excitations(label+".out")
             energy = calc_orca.get_property('energy',atoms=model,allow_calculation=False)
         else:
             self.move_to_tempdir(label)
             energy = model.get_potential_energy()
-            print("Reading excitations")        
-            s_excit = self.read_excitations(calc_orca)
+            print("Reading excitations")
+            s_excit = self.read_excitations(label+".out")
             self.return_from_tempdir(label)
         if cleanup:
             self.cleanup(label)

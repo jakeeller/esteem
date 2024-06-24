@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 """Defines the MACEWrapper Class"""
 import numpy as np
 
@@ -13,72 +10,6 @@ class MACEWrapper():
     potential energy surface.
     """
 
-    # Class attribute: default training arguments shown for reference - not used in code
-    # as it extracts the values from MACE
-    '''
-    default_train_args =  dict(
-        E0s={},
-        MLP_irreps='16x0e',
-        amsgrad=True,
-        avg_num_neighbors=1,
-        batch_size=40,
-        checkpoints_dir='checkpoints',
-        clip_grad=10.0,
-        compute_avg_num_neighbors=True,
-        config_type_weights={"Default":1.0},
-        correlation=3,
-        default_dtype='float64',
-        device='cuda',
-        downloads_dir='downloads',
-        ema=True,
-        ema_decay=0.99,
-        energy_key='energy',
-        energy_weight=1.0,
-        error_table='PerAtomRMSE',
-        eval_interval=2,
-        forces_key='forces',
-        forces_weight=10.0,
-        gate='silu',
-        hidden_irreps='128x0e + 128x1o',
-        interaction='RealAgnosticResidualInteractionBlock',
-        interaction_first='RealAgnosticResidualInteractionBlock',
-        keep_checkpoints=False,
-        log_dir='logs',
-        log_level='INFO',
-        loss='weighted',
-        lr=0.01,
-        lr_factor=0.8,
-        lr_scheduler_gamma=0.9993,
-        max_ell=3,
-        max_num_epochs=200, 
-        model='MACE',
-        name='all_etoh_gs_MACE',
-        num_cutoff_basis=5,
-        num_interactions=2,
-        num_radial_basis=8,
-        optimizer='adam',
-        patience=2048,
-        r_max=5.0,
-        restart_latest=True,
-        results_dir='results',
-        save_cpu=False,
-        scaling='rms_forces_scaling',
-        scheduler='ReduceLROnPlateau',
-        scheduler_patience=50,
-        seed=123,
-        start_swa=1200,
-        swa=True,
-        swa_energy_weight=1000.0,
-        swa_forces_weight=1.0,
-        swa_lr=0.001,
-        test_file='test.xyz',
-        train_file='train.xyz',
-        valid_batch_size=10,
-        valid_file=None,
-        valid_fraction=0.05,
-        weight_decay=5e-07)
-    '''
-
     from mace import tools
     default_train_args = vars(tools.build_default_arg_parser().parse_args(["--name","dummy","--train_file","train.xyz"]))
     
@@ -87,6 +18,10 @@ class MACEWrapper():
         from copy import deepcopy
         self.train_args = deepcopy(self.default_train_args)
         self.train_args['max_num_epochs'] = -1
+        self.train_args['model'] = 'EnergyDipolesMACE'
+        self.train_args['loss'] = 'energy_forces_dipole'
+        self.train_args['error_table'] = 'EnergyDipoleRMSE'
+        self.train_args['restart_latest'] = True
 
         # Allow overrides for this instance of the class
         for kw in self.train_args:
@@ -631,10 +566,6 @@ class MACEWrapper():
                 return e_calc, d_calc, calc_ml
             else:
                 return e_calc, calc_ml
-
-
-# In[ ]:
-
 
 
 

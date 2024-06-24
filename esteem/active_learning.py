@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
-
 
 """
 Defines routines that implement Active Learning by duplicating a prototype task
@@ -14,9 +12,6 @@ To use, create a prototype for each, and lists of calculators, targets, random s
 and call then call each of the create_* routines to return lists of tasks to
 pass to drivers.main()
 """
-
-
-# In[ ]:
 
 
 from esteem.trajectories import get_trajectory_list
@@ -109,9 +104,6 @@ def create_clusters_tasks(task,train_calcs,seed,traj_suffix,md_suffix,
                     new_clusters_tasks[task.exc_suffix+traj_char] = deepcopy(task)
                 task.subset_selection_method = None
     return new_clusters_tasks
-
-
-# In[ ]:
 
 
 def get_keys(task):
@@ -313,10 +305,6 @@ def create_mltrain_tasks(train_task,train_calcs,seeds,targets,rand_seed,meth,tru
                 new_mltrain_tasks[targets[target]+'_'+train_task.calc_suffix] = deepcopy(train_task)
     return new_mltrain_tasks
 
-
-# In[ ]:
-
-
 def create_mltraj_tasks(mltraj_task,train_calcs,targets,rand_seed,meth,md_wrapper,
                         traj_suffix='mldyn',snap_wrapper=None,two_targets=False):
     """
@@ -350,7 +338,10 @@ def create_mltraj_tasks(mltraj_task,train_calcs,targets,rand_seed,meth,md_wrappe
                     mltraj_task.snap_wrapper = snap_wrapper
                     if two_targets:
                         calc_suffix = mltraj_task.calc_suffix
-                        taskname = f"{taskname}_{traj_suffix}_{mltraj_task.carved_suffix}"
+                        if mltraj_task.carved_suffix is not None and mltraj_task.carved_suffix!='':
+                            taskname = f"{taskname}_{traj_suffix}_{mltraj_task.carved_suffix}"
+                        else:
+                            taskname = f"{taskname}_{traj_suffix}"     
                         targ = [0,1] if target==0 else [1,0]
                     else:
                         taskname = taskname + f'x{len(rand_seed)}'
@@ -363,9 +354,6 @@ def create_mltraj_tasks(mltraj_task,train_calcs,targets,rand_seed,meth,md_wrappe
                 mltraj_task.traj_suffix = f'{mltraj_task.calc_suffix}_{traj_suffix}'
                 new_mltraj_tasks[taskname] = deepcopy(mltraj_task)
     return new_mltraj_tasks
-
-
-# In[ ]:
 
 
 def create_mltest_tasks(test_task,train_calcs,seeds,targets,rand_seed,truth,meth,
@@ -424,11 +412,7 @@ def create_mltest_tasks(test_task,train_calcs,seeds,targets,rand_seed,truth,meth
                     new_test_tasks[f"{targets[target]}_{meth}{t}{rs}_mltraj_{meth}{tp}"] = deepcopy(test_task)
     return new_test_tasks
 
-
-# In[12]:
-
-
-def create_spectra_tasks(spectra_task,train_calcs,targets,rand_seed,meth,ntraj,corr_traj=False):
+def create_spectra_tasks(spectra_task,train_calcs,targets,rand_seed,meth,ntraj,traj_suffix='specdyn',corr_traj=False):
     """
     Returns a dictionary of Spectra tasks, based on an input prototype task supplied by
     the user, for all the required Spectra tasks for an Active Learning task.
@@ -455,18 +439,15 @@ def create_spectra_tasks(spectra_task,train_calcs,targets,rand_seed,meth,ntraj,c
             rslist = list(rand_seed)
             for iw,w in enumerate(get_trajectory_list(ntraj)):
                 rs = rslist[iw]
-                all_trajs.append([f"{tdir}/{{solu}}_{{solv}}_{targstr}_{w}_{meth}{t}{rs}_specdyn_recalc.traj", 
-                                  f"{tdir}/{{solu}}_{{solv}}_{targstrp}_{w}_{meth}{t}{rs}_specdyn_recalc.traj"])
+                all_trajs.append([f"{tdir}/{{solu}}_{{solv}}_{targstr}_{w}_{meth}{t}{rs}_{traj_suffix}_recalc.traj", 
+                                  f"{tdir}/{{solu}}_{{solv}}_{targstrp}_{w}_{meth}{t}{rs}_{traj_suffix}_recalc.traj"])
                 if corr_traj:
                     all_corr_trajs.append([f"{tdir}/{{solu}}_{{solv}}_{targstr}_{w}_{meth}{t}{rs}_nosolu.traj"])
             spectra_task.trajectory = all_trajs
             spectra_task.correction_trajectory = all_corr_trajs
-            new_spectra_tasks[f'{targstr}_{meth}{t}_specdyn'] = deepcopy(spectra_task)
+            new_spectra_tasks[f'{targstr}_{meth}{t}_{traj_suffix}'] = deepcopy(spectra_task)
             
     return new_spectra_tasks
-
-
-# In[ ]:
 
 
 def setup_scripts(scriptname,seed,targstr,num_calcs,calc_suffix,method,script_settings,make_sbatch):
@@ -501,9 +482,6 @@ echo "X="$X "YP="$YP
         make_sbatch(task=task,**script_settings)
 
     script_settings['declarations'] = store_decs
-
-
-# In[1]:
 
 
 def unit_test():
@@ -570,14 +548,6 @@ do_unit_test = False
 if do_unit_test:
     unit_test()
 
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
 
 
 
