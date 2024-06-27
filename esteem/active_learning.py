@@ -307,8 +307,8 @@ def create_mltrain_tasks(train_task:MLTrainingTask,train_calcs,seeds,targets,ran
                 new_mltrain_tasks[targets[target]+'_'+train_task.calc_suffix] = deepcopy(train_task)
     return new_mltrain_tasks
 
-from esteem.tasks.ml_trajectories import MLTrajectoryTask
-def create_mltraj_tasks(mltraj_task:MLTrajectoryTask,train_calcs,targets,rand_seed,meth,md_wrapper,
+from esteem.tasks.ml_trajectories import MLTrajTask
+def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,meth,md_wrapper,
                         traj_suffix='mldyn',snap_wrapper=None,two_targets=False):
     """
     Returns a dictionary of MLTraj tasks, based on an input prototype task supplied by
