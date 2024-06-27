@@ -3,6 +3,7 @@
 
 """Defines the MACEWrapper Class"""
 import numpy as np
+from ase.io import read,write
 
 class MACEWrapper():
     """
@@ -72,7 +73,7 @@ class MACEWrapper():
         if self.calc_params is None:
             self.calc_params = {'target': target,'calc_prefix': prefix,
                                 'calc_suffix': suffix,'calc_seed': seed}
-            
+
         if self.calc is not None: 
             return self.calc
         try:
@@ -304,6 +305,115 @@ class MACEWrapper():
               'forces': atoms.get_forces()}
         traj.write(atoms,**kw)
 
+    def restore_from_coordinates(self,model,crdfile):
+        model = read(crdfile,index=-1)
+        return model
+
+    def heatup(self,model,seed,calc_params={},nsteps=100):
+        """
+        Runs a heating up Molecular Dynamics calculation with the MACE ASE calculator.
+
+        model: ASE Atoms
+
+        seed: str
+        
+        calc_params: dict
+        
+        nsteps: int
+        """
+
+        if not hasattr(self,'dynamics') or self.dynamics is None:
+            from types import SimpleNamespace
+            self.dynamics = SimpleNamespace()
+            self.dynamics.type = "LANG"
+            self.dynamics.friction = self.friction
+            self.dynamics.new_traj = True
+        nramp = 10
+        models_ramped = []
+        for iramp in range(nramp):
+            ramp_temp = self.temp0*(iramp+1)/nramp
+            self.dynamics = self.run_md(model,seed+"_heat",calc_params,nsteps/nramp,self.dt,1,ramp_temp,dynamics=self.dynamics)
+            models_ramped.append(model.copy())
+            write('heat.xyz',models_ramped)
+
+    def densityequil(self,model,seed,calc_params={},nsteps=100):
+        """
+        Runs a density equilibration Molecular Dynamics calculation with the MACE ASE calculator.
+        model: ASE Atoms
+        seed: str
+        calc_params: dict
+        nsteps: int
+        """
+
+        if ((not hasattr(self,'dynamics') or self.dynamics is None) or
+            (self.dynamics.type!="NPT")):
+            from types import SimpleNamespace
+            self.dynamics = SimpleNamespace()
+            self.dynamics.type = "NPT"
+            self.dynamics.friction = self.friction
+            self.dynamics.ttime = self.ttime
+            from ase import units
+            self.dynamics.pfactor = 2*1.06e9*(units.J/units.m**3)*self.ttime**2
+            self.dynamics.new_traj = True
+        self.dynamics = self.run_md(model,seed+"_dens",calc_params,nsteps,self.dt,1,self.temp0,dynamics=self.dynamics)
+        write('density.xyz',model)
+
+    def equil(self,model,seed,calc_params={},nsteps=100):
+        """
+        Runs an equilibration Molecular Dynamics calculation with the MACE ASE calculator.
+        model: ASE Atoms
+        seed: str
+        calc_params: dict
+        nsteps: int
+        """
+
+        if ((not hasattr(self,'dynamics') or self.dynamics is None) or
+            (self.dynamics.type!="LANG")):
+            from types import SimpleNamespace
+            self.dynamics = SimpleNamespace()
+            self.dynamics.type = "LANG"
+            self.dynamics.friction = self.friction
+            self.dynamics.new_traj = True
+        self.dynamics = self.run_md(model,seed+"_equil",calc_params,nsteps,self.dt,1,self.temp0,dynamics=self.dynamics)
+        write('equil.xyz',model)
+
+    def snapshots(self,model,seed,calc_params={},nsnaps=1,nsteps=100,start=0,nat_solu=0,nat_solv=0):
+        """
+        Runs a density equilibration Molecular Dynamics calculation with the MACE ASE calculator.
+        model: ASE Atoms
+        seed: str
+        calc_params: dict
+        nsteps: int
+        """
+        from ase.io import Trajectory
+
+        trajname = seed+'.traj'
+        if start==0:
+            traj = Trajectory(trajname, 'w')
+        else:
+            traj = Trajectory(trajname)
+            prevframe = len(traj)
+            print(f'# Found trajectory file {trajname} containing {prevframe} frames.')
+            if prevframe != start+1:
+                raise Exception(f'Error: This does not agree with the resumption point {start}.')
+            traj.close()
+            traj = Trajectory(trajname, 'a')
+        if ((not hasattr(self,'dynamics') or self.dynamics is None) or
+            (self.dynamics.type!="LANG")):
+            from types import SimpleNamespace
+            self.dynamics = SimpleNamespace()
+            self.dynamics.type = "LANG"
+            self.dynamics.friction = self.friction
+            self.dynamics.new_traj = True
+        snapout = model.copy()
+        for step in range(start,nsnaps):
+            self.dynamics = self.run_md(snapout,seed+"_snaps",calc_params,nsteps,self.dt,1,self.temp0,dynamics=self.dynamics)
+            from esteem.tasks.clusters import reimage_cluster
+            snap_reimage = snapout.copy()
+            reimage_cluster(snap_reimage,nat_solv,nat_solu)
+            traj.write(snap_reimage)
+            write(f'snap{step:04}.xyz',snap_reimage)
+
     def run_md(self,model,mdseed,calc_params,md_steps,md_timestep,superstep,temp,
                  solvent=None,charge=0,restart=False,readonly=False,constraints=None,dynamics=None,
                  continuation=None):
@@ -374,10 +484,10 @@ class MACEWrapper():
                     dynamics.set_friction(friction)
                     dynamics.set_temperature(temperature_K=temp)
             if dyn_type=="NPT" and type(dynamics)!=npt.NPT:
-                ttime = dynamics.friction
-                pfactor = None #1.06e9*(units.J/units.m**3)*ttime**2 # Bulk modulus for ethanol
+                ttime = dynamics.ttime
+                pfactor = dynamics.pfactor #None #1.06e9*(units.J/units.m**3)*ttime**2 # Bulk modulus for ethanol
                 dynamics = npt.NPT(model, timestep=md_timestep, temperature_K=temp, externalstress=0,
-                                   pfactor=pfactor,ttime=ttime)
+                                   pfactor=pfactor,ttime=ttime,mask=np.eye(3,dtype=bool))
             dynamics.new_traj = new_traj
             dynamics.friction = friction
             dynamics.type = dyn_type
@@ -440,6 +550,8 @@ class MACEWrapper():
             fmax = 0.00045*fac
         if driver_tol=='loose':
             fmax = 0.00450*fac
+        if driver_tol=='veryloose':
+            fmax = 0.1*fac
         if driver_tol=='tight':
             fmax = 0.000015*fac
             
@@ -498,8 +610,9 @@ class MACEWrapper():
         #print(freqs)
         return ir
 
-    def singlepoint(self,model,seed,calc_params,solvent=None,charge=0,spin=0,forces=False,dipole=True,
-                    readonly=False,continuation=False,cleanup=True):
+    def singlepoint(self,model,seed,calc_params,solvent=None,charge=0,spin=0,
+                    forces=False,dipole=False,calc=False,readonly=False,continuation=False,
+                    cleanup=True):
         """
         Runs a singlepoint calculation with the MACE ASE calculator
 
@@ -556,16 +669,14 @@ class MACEWrapper():
                 f_calc = model.get_forces()
             if dipole:
                 d_calc = model.get_dipole_moment()
+        res = [e_calc]
         if forces:
-            if dipole:
-                return e_calc, f_calc, d_calc, calc_ml
-            else:
-                return e_calc, f_calc, calc_ml
-        else:
-            if dipole:
-                return e_calc, d_calc, calc_ml
-            else:
-                return e_calc, calc_ml
+            res.append(f_calc)
+        if dipole:
+            res.append(d_calc)
+        if calc:
+            res.append(calc_ml)
+        return res
 
 
 

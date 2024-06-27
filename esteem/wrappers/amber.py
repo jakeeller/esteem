@@ -65,6 +65,8 @@ class AmberWrapper():
         self.acpype_charge_type = 'bcc'
         self.acpype_atom_type = 'amber'
         self.output = "amber"
+        self.restart_ext = "rst"
+        self.input_ext = "pdb"
 
         self.amber_exe_serial = 'sander -O '
         if which('sander.MPI'):
@@ -627,9 +629,13 @@ class AmberWrapper():
             raise RuntimeError('{} returned an error: {}'
                                 .format('awk', errorcode))
 
+    # Restore coordinates into calculator
+    def read_coordinates(self,model,crdfile):
+        model.calc.read_coordinates(model,crdfile)
+
     # Set up Amber calculator
     def singlepoint(self,model,seed,calc_params={},forces=False,solvent=None,
-                    readonly=False,continuation=False):
+                    readonly=False,continuation=False,dipole=False,calc=False):
         """Runs a singlepoint calculation with the Amber ASE calculator"""
         f = open(seed+'.in', 'w')
         mmin_str =  f'''
@@ -651,14 +657,18 @@ ntpr=1,ntwf=1,ntwe=1,ntwx=1 ! (output frequencies)
         calc_am.write_coordinates(model,f'{seed}.crd')
         model.set_calculator(calc_am)
 
+        e = model.get_potential_energy()
+        res = [e]
         if forces:
-            e = model.get_potential_energy()
-            f = model.get_forces()        
-            calc_am.results['dipole'] = self.dipole(seed,calc_am.incoordfile)
-            print(calc_am.results['dipole'])
-            return e,f,calc_am
-        else:
-            return model.get_potential_energy()
+            f = model.get_forces()
+            res.append(f)
+        if dipole:        
+            d = self.dipole(seed,calc_am.incoordfile)
+            calc_am.results['dipole'] = d
+            res.append(d)
+        if calc:
+            res.append(calc_am)
+        return res
 
     def geom_opt(self,model,seed,calc_params={},solvent=None):
         """Runs a geometry optimisation calculation with the Amber ASE calculator"""
@@ -797,7 +807,7 @@ ntpr=1,ntwf=1,ntwe=1,ntwx=1 ! (output frequencies)
         new_ke = model.get_kinetic_energy()
         print("Pot, Kin Energy after equilibration: ", new_pe, new_ke)
         
-    def snapshots(self,model,seed,calc_params={},nsnaps=1,nsteps=100,start=0):
+    def snapshots(self,model,seed,calc_params={},nsnaps=1,nsteps=100,start=0,nat_solu=0,nat_solv=0):
         """Runs a long MD trajectory for snapshot generation with the Amber ASE calculator"""
         # NTC = 1: SHAKE not used - no constraints
         snap_str = (f'''
@@ -866,7 +876,7 @@ ntpr=1,ntwf=1,ntwe=1,ntwx=1 ! (output frequencies)
         from ase.io import Trajectory
         from ase import units
         
-        """Runs a singlepoint calculation with the Amber ASE calculator"""
+        """Runs an md calculation with the Amber ASE calculator"""
         f = open(mdseed+'.in', 'w')
         mmin_str =  f'''
 zero step md to get energy and force

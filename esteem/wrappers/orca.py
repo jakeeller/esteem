@@ -201,7 +201,7 @@ class ORCAWrapper():
             calc.parameters['orcablocks'] += f"\n  end"
 
     def singlepoint(self,model,label,calc_params={},solvent=None,charge=0,spin=0,
-                    forces=False,dipole=True,continuation=False,readonly=False,calconly=False,
+                    forces=False,dipole=True,continuation=False,readonly=False,calc=False,
                     cleanup=True):
         """Runs a singlepoint calculation with the ORCA ASE calculator"""
         basis, xc, target, disp = self.unpack_params(calc_params)
@@ -228,8 +228,6 @@ class ORCAWrapper():
             results = calc_orca.template.read_results(calc_orca.directory) # skip calculation
             calc_orca = SinglePointCalculator(atoms=model,**results)
             model.calc = calc_orca
-        if calconly:
-            return calc_orca
         if not readonly:
             self.move_to_tempdir(label)
         if forces:
@@ -244,16 +242,14 @@ class ORCAWrapper():
         if not readonly:
             self.return_from_tempdir(label)
 
+        res = [e_calc]
         if forces:
-            if dipole:
-                return e_calc, f_calc, d_calc, calc_orca
-            else:
-                return e_calc, f_calc, calc_orca
-        else:
-            if dipole:
-                return e_calc, d_calc, calc_orca
-            else:
-                return e_calc, calc_orca
+            res.append(f_calc)
+        if dipole:
+            res.append(d_calc)
+        if calc:
+            res.append(calc_orca)
+        return res
 
     def geom_opt(self,model_opt,label,calc_params={},driver_tol='default',
                  solvent=None,continuation=False,charge=0,spin=0,readonly=False,

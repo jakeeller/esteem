@@ -169,20 +169,84 @@ class SolvateTask:
         print(system)
         convert._save_lammps(system,oname,output_status,intermol_args)
 
+    def setup_packmol(self):
+
+        """
+        Handles setup of the solvated model using Packmol 
+        Requires MDAnalysis and mdapackmol packages (pip installed)
+        and packmol executable in PATH
+        """
+
+        import MDAnalysis as mda
+        import mdapackmol
+        from ase import units
+
+        oname = f"{self.solute}_{self.solvent}_solv"
+
+        if path.exists(f'{oname}.xyz'):
+            print(f'Found {oname}.xyz, skipping Packmol setup')
+            return
+        print("# Setting up solvated model using Packmol")
+        structures = []
+        if self.boxsize is None:
+            mass = 0
+            for i,seed in enumerate([self.solute, self.solvent]):
+                component = read(f'{seed}.xyz')
+                number = 1 if i==0 else self.nmol_solvent
+                mass += component.get_masses().sum()*number
+            density = self.init_density*units.kg*0.001/(units.m*0.01)**3
+            self.boxsize = (mass/density)**(1/3)
+            print(self.boxsize)
+        pd = 1.2; bs = self.boxsize; rg=bs/4
+        for i,seed in enumerate([self.solute, self.solvent]):
+            # Load molecular structure from .xyz file
+            component = mda.Universe(f'{seed}.xyz')
+            if i==0:
+                instructions = [f'inside box {rg} {rg} {rg} {3*rg} {3*rg} {3*rg}'] 
+                number = 1
+            else:
+                instructions = [f'inside box {pd} {pd} {pd} {bs} {bs} {bs}'] 
+                number = self.nmol_solvent
+            # TODO: counterions
+            print(f'# {seed}: ',component,number,instructions)
+            structures.append(mdapackmol.PackmolStructure(component,number,instructions))
+        # call Packmol with MDAnalysis objects as arguments
+        # the 'instructions' allow for any valid Packmol commands
+        system = mdapackmol.packmol(structures)
+
+        # the returned system is a MDAnalysis Universe
+        # with all topology information from building blocks retained
+        # which can then be saved into any format
+        system.atoms.write(f'{oname}.xyz')
+        atoms = read(f'{oname}.xyz')
+        atoms.set_pbc([True,True,True])
+        atoms.set_cell([bs,bs,bs])
+        print('writing periodic model to ',f'{oname}.xyz')
+        atoms.write(f'{oname}.xyz')
+        return
+
     def setup(self):
-        from esteem.wrappers.amber import AmberWrapper
-        if type(self.wrapper)!=AmberWrapper:
-            orig_wrapper = self.wrapper
-            self.wrapper = AmberWrapper()
-            self.setup_amber()
-            self.wrapper = orig_wrapper
+        # Pass necessary inputs into wrapper
+        self.wrapper.dt = self.timestep
+        self.wrapper.temp0 = self.temp
+        self.wrapper.friction = self.md_friction
+        self.wrapper.ttime = self.md_ttime
+        if hasattr(self,'setup_cell'):
+            self.setup_cell()
         else:
-            self.setup_amber()
+            from esteem.wrappers.amber import AmberWrapper
+            if type(self.wrapper)!=AmberWrapper:
+                orig_wrapper = self.wrapper
+                self.wrapper = AmberWrapper()
+                self.setup_amber()
+                self.wrapper = orig_wrapper
+            else:
+                self.setup_amber()
 
     # Main program for Solvated MD
     def run(self):
         """
-        Handles running of MD on a solvated model using an MD Wrapper (currently Amber or LAMMPS).
+        Handles running of MD on a solvated model using an MD Wrapper
 
         There are five phases to the task:
 
@@ -210,15 +274,21 @@ class SolvateTask:
         """
         
         from os.path import isfile
+        from ase.io import write
 
-        # Load in models from pdb files
-        solute = read(self.solute+".pdb")
-        solvent = read(self.solvent+".pdb")
+        # Load in models from pdb files if requested, else xyz
+        if hasattr(self.wrapper,'input_ext'):
+            inp = self.wrapper.input_ext
+        else:
+            inp = 'xyz'
+        solute = read(f'{self.solute}.{inp}')
+        solvent = read(f'{self.solvent}.{inp}')
 
-        solvatedseed = self.solute+"_"+self.solvent+"_solv"
-        solvated = read(solvatedseed+'.pdb')
+        solvatedseed = f'{self.solute}_{self.solvent}_solv'
+        solvated = read(f'{solvatedseed}.{inp}')
+        solvated.set_pbc([True,True,True])
 
-        calc_params = {'calc_seed':'cate','calc_suffix':'3x15_R8.0','calc_prefix':'../','target':0}
+        calc_params = self.calc_params
         e0_am_solu = self.wrapper.singlepoint(solute,self.solute,calc_params)
         print('\nSolute ground state energy: ',e0_am_solu)
         e0_am_solv = self.wrapper.singlepoint(solvent,self.solvent,calc_params)
@@ -227,49 +297,67 @@ class SolvateTask:
         print('\nSolvated model contains ',len(solvated.positions),' atoms')
         print('\nSolvated model energy: ',e0_am_solvate)
 
-        calc_params = {}
-
-        # Minimize first? (not helpful - commented out)
-        minimised = solvated.copy()
-        #wrapper.minimise(solvatedseed,solvated,minimised)
-
-        heated = minimised.copy()
-        if isfile('heat.rst'):
-            print('\nReading from heat.rst')
-            solvated.calc.read_coordinates(heated,'heat.rst')
+        # models saved as rst files if using amber, else xyz
+        if hasattr(self.wrapper,'restart_ext'):
+            ext = self.wrapper.restart_ext
         else:
-            print('\nHeating model to target temperature')
+            ext = 'xyz'
+
+        # Minimize first
+        minimised = solvated.copy()
+        if isfile(f'minimised.{ext}'):
+            print(f'\nReading from minimised.{ext}')
+            minimised = self.wrapper.restore_from_coordinates(minimised,f'minimised.{ext}')
+        else:
+            self.wrapper.geom_opt(minimised,solvatedseed,calc_params,driver_tol='veryloose')
+            write(f'minimised.{ext}',minimised)
+
+        # load minimised model, then check if heating has been done
+        # and load coordinates if so
+        heated = minimised.copy()
+        if isfile(f'heat.{ext}'):
+            print(f'\nReading from heat.{ext}')
+            heated = self.wrapper.restore_from_coordinates(heated,f'heat.{ext}')
+        else:
+            print(f'\nHeating model to target temperature (nsteps={self.nheat})')
             self.wrapper.heatup(heated,solvatedseed,calc_params=calc_params,nsteps=self.nheat)
 
+        # load heated model, then check if density-equilibration has been done
+        # and load coordinates if so
         densityeq = heated.copy()
-        if isfile('density.rst'):
-            print('\nReading from density.rst')
-            solvated.calc.read_coordinates(densityeq,'density.rst')
+        if isfile(f'density.{ext}'):
+            print(f'\nReading from density.{ext}')
+            densityeq = self.wrapper.restore_from_coordinates(densityeq,f'density.{ext}')
         else:
-            print('\nEquilibrating density of model')
+            print(f'\nEquilibrating density of model (nsteps={self.ndens})')
             self.wrapper.densityequil(densityeq,solvatedseed,calc_params=calc_params,nsteps=self.ndens)
 
+        # load density-equilibrated model, then check if equilibration has been done
+        # and load coordinates if so
         equbd = densityeq.copy()
-        if isfile('equil.rst'):
-            print('\nReading from equil.rst')
-            solvated.calc.read_coordinates(equbd,'equil.rst')
+        if isfile(f'equil.{ext}'):
+            print(f'\nReading from equil.{ext}')
+            equbd = self.wrapper.restore_from_coordinates(equbd,f'equil.{ext}')
         else:
-            print('\nEquilibrating at fixed volume')
+            print(f'\nEquilibrating at fixed volume (nsteps={self.nequil})')
             self.wrapper.equil(equbd,solvatedseed,calc_params=calc_params,nsteps=self.nequil)
 
+        # copy in equilibrated coordinates, then check if we can restart snapshots or start afresh
         snap = equbd.copy()
         start = 0
         for i in range(self.nsnaps):
-            if isfile(f'snap{i:04}.rst'):
+            if isfile(f'snap{i:04}.{ext}'):
                 start=i
         if start>0:
-            print(f'\nResuming snapshot generation from i={start}')
-            solvated.calc.read_coordinates(snap,f'snap{start:04}.rst')
+            print(f'\nResuming snapshot generation from i={start} using snap{start:04}.{ext}')
+            snap = self.wrapper.restore_from_coordinates(snap,f'snap{start:04}.{ext}')
         else:
-            print('\nGenerating snapshots')
-            
+            print(f'\nGenerating snapshots (nsnaps={self.nsnaps}, nsteps={self.nsteps})')
+
+        # run the wrapper's snapshots driver
         self.wrapper.snapshots(snap,solvatedseed,calc_params=calc_params,
-                               nsnaps=self.nsnaps,nsteps=self.nsteps,start=start)
+                               nsnaps=self.nsnaps,nsteps=self.nsteps,start=start,
+                               nat_solu=len(solute),nat_solv=len(solvent))
 
     def make_parser(self):
 
@@ -290,7 +378,10 @@ class SolvateTask:
         parser = ArgumentParser(description=main_help,epilog=epi_help)
         parser.add_argument('--solute','-u',required=False,type=str,help='Name of solute molecule')
         parser.add_argument('--solvent','-v',required=False,type=str,help='Name of solvent molecule')
-        parser.add_argument('--boxsize','-b',default=20,type=int,help='Size of simulation box for MD calculation')
+        parser.add_argument('--boxsize','-b',default=20,type=int,help='Size of initial simulation box for MD calculation')
+        parser.add_argument('--nmol_solvent','-n',default=None,type=int,help='Number of solvent molecules to add to box (packmol only)')
+        parser.add_argument('--init_density','-d',default=1,type=int,help='Initial density of system in g/cm^3 (packmol only)')
+        parser.add_argument('--md_friction','-f',default=0.005,type=int,help='Langevin dynamics friction (not used by amber)')
         parser.add_argument('--timestep','-t',default=0.002,type=float,help='Time step of Molecular Dynamics runs')
         parser.add_argument('--temp','-T',default=300.0,type=float,help='Thermostat temperature for Molecular Dynamics runs')
         parser.add_argument('--nheat','-H',default=10000,type=int,help='Number of MD steps in Heating phase')
@@ -303,6 +394,7 @@ class SolvateTask:
         parser.add_argument('--md_suffix','-m',default='md',nargs='?',type=str,help=SUPPRESS)
         parser.add_argument('--md_geom_prefix',default='gs_PBE0',nargs='?',type=str,help=SUPPRESS)
         parser.add_argument('--counterions','-C',default={},type=str,help='Counterion(s) to add, eg Na')
+        parser.add_argument('--calc_params','-p',default={},type=str,help='Calculator parameter - leave blank')
         # Wrapper Dependent
         parser.add_argument('--ewaldcut','-e',default=12.0,type=float,help='Cutoff length for Ewald calculation (See Amber manual)')
         parser.add_argument('--gammaln','-g',default=1.0,type=float,help='Thermostat parameter: Collision frequency in ps^-1')
