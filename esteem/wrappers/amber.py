@@ -630,8 +630,16 @@ class AmberWrapper():
                                 .format('awk', errorcode))
 
     # Restore coordinates into calculator
-    def read_coordinates(self,model,crdfile):
+    def restore_from_coordinates(self,model,crdfile):
+        seed = "dummy"
+        calc_am = Amber(amber_exe=self.amber_exe_serial,
+                     infile=seed+'.in',
+                     outfile=seed+'.out',
+                     topologyfile=seed+'.prmtop',
+                     incoordfile=seed+'.crd')
+        model.calc = calc_am
         model.calc.read_coordinates(model,crdfile)
+        return model
 
     # Set up Amber calculator
     def singlepoint(self,model,seed,calc_params={},forces=False,solvent=None,
@@ -670,7 +678,7 @@ ntpr=1,ntwf=1,ntwe=1,ntwx=1 ! (output frequencies)
             res.append(calc_am)
         return res
 
-    def geom_opt(self,model,seed,calc_params={},solvent=None):
+    def geom_opt(self,model,seed,calc_params={},solvent=None,driver_tol=0.01):
         """Runs a geometry optimisation calculation with the Amber ASE calculator"""
         minin_str = (f'''
     Initial minimisation

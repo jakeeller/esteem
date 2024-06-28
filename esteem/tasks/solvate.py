@@ -123,7 +123,7 @@ class SolvateTask:
                 print('Using pre-existing Amber inputs for solvent')
 
         # Add solvent box and output pdb file of solvated model
-        print('Preparing solvated model of solute')
+        print('Preparing solvated model of solute, boxsize=',self.boxsize)
         self.wrapper.add_solvent_box(self.solute,self.solvent,self.counterions,solvatedseed,self.boxsize)
         #self.wrapper.crd_to_crdnc(solvatedseed,solvatedseed)
         self.wrapper.fix_amber_pdb(solvatedseed)
@@ -133,7 +133,8 @@ class SolvateTask:
             self.wrapper.add_restraint(solvatedseed,self.solute[:3],self.restraints,self.rest_r)
 
         # Pass common inputs into Amber module
-        self.wrapper.dt = self.timestep
+        from ase import units
+        self.wrapper.dt = self.timestep/(units.fs*1000) # amber expects ps units
         self.wrapper.temp0 = self.temp
         self.wrapper.cut = self.ewaldcut
         self.wrapper.gamma_ln = self.gammaln
@@ -289,11 +290,11 @@ class SolvateTask:
         solvated.set_pbc([True,True,True])
 
         calc_params = self.calc_params
-        e0_am_solu = self.wrapper.singlepoint(solute,self.solute,calc_params)
+        e0_am_solu = self.wrapper.singlepoint(solute,self.solute,calc_params)[0]
         print('\nSolute ground state energy: ',e0_am_solu)
-        e0_am_solv = self.wrapper.singlepoint(solvent,self.solvent,calc_params)
+        e0_am_solv = self.wrapper.singlepoint(solvent,self.solvent,calc_params)[0]
         print('\nSolvent ground state energy: ',e0_am_solv)
-        e0_am_solvate = self.wrapper.singlepoint(solvated,solvatedseed,calc_params)
+        e0_am_solvate = self.wrapper.singlepoint(solvated,solvatedseed,calc_params)[0]
         print('\nSolvated model contains ',len(solvated.positions),' atoms')
         print('\nSolvated model energy: ',e0_am_solvate)
 
@@ -309,8 +310,12 @@ class SolvateTask:
             print(f'\nReading from minimised.{ext}')
             minimised = self.wrapper.restore_from_coordinates(minimised,f'minimised.{ext}')
         else:
-            self.wrapper.geom_opt(minimised,solvatedseed,calc_params,driver_tol='veryloose')
-            write(f'minimised.{ext}',minimised)
+            # we do not do this for AmberWrappers - minimising from the periodic initial
+            # structure is not recommended as it leads to densely "stacked" configurations
+            from esteem.wrappers.amber import AmberWrapper
+            if type(self.wrapper)!=AmberWrapper:
+                self.wrapper.geom_opt(minimised,solvatedseed,calc_params,driver_tol='veryloose')
+                write(f'minimised.{ext}',minimised)
 
         # load minimised model, then check if heating has been done
         # and load coordinates if so
@@ -375,6 +380,7 @@ class SolvateTask:
         epi_help = ('Note: Writes the output trajectory in the format \n'+
                     '<solute>_<solvent>_solv.traj')
         from argparse import ArgumentParser, SUPPRESS
+        from ase import units
         parser = ArgumentParser(description=main_help,epilog=epi_help)
         parser.add_argument('--solute','-u',required=False,type=str,help='Name of solute molecule')
         parser.add_argument('--solvent','-v',required=False,type=str,help='Name of solvent molecule')
@@ -382,7 +388,8 @@ class SolvateTask:
         parser.add_argument('--nmol_solvent','-n',default=None,type=int,help='Number of solvent molecules to add to box (packmol only)')
         parser.add_argument('--init_density','-d',default=1,type=int,help='Initial density of system in g/cm^3 (packmol only)')
         parser.add_argument('--md_friction','-f',default=0.005,type=int,help='Langevin dynamics friction (not used by amber)')
-        parser.add_argument('--timestep','-t',default=0.002,type=float,help='Time step of Molecular Dynamics runs')
+        parser.add_argument('--md_ttime','-i',default=50*units.fs,type=int,help='Langevin dynamics friction (not used by amber)')
+        parser.add_argument('--timestep','-t',default=0.002*(units.fs*1000),type=float,help='Time step of Molecular Dynamics runs')
         parser.add_argument('--temp','-T',default=300.0,type=float,help='Thermostat temperature for Molecular Dynamics runs')
         parser.add_argument('--nheat','-H',default=10000,type=int,help='Number of MD steps in Heating phase')
         parser.add_argument('--ndens','-D',default=50000,type=int,help='Number of MD steps in Density Equilibration phase')

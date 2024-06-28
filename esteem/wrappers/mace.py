@@ -398,8 +398,9 @@ class MACEWrapper():
                 raise Exception(f'Error: This does not agree with the resumption point {start}.')
             traj.close()
             traj = Trajectory(trajname, 'a')
-        if ((not hasattr(self,'dynamics') or self.dynamics is None) or
-            (self.dynamics.type!="LANG")):
+        if True:
+            #((not hasattr(self,'dynamics') or self.dynamics is None) or
+            #(self.dynamics.type!="LANG")):
             from types import SimpleNamespace
             self.dynamics = SimpleNamespace()
             self.dynamics.type = "LANG"

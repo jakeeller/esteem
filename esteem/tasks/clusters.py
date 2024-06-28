@@ -562,7 +562,7 @@ class ClustersTask:
         parser.add_argument('--kernel','-k',default=0.0,type=float,help='Maximum distance from any atom of a solvent molecule to atom of a solute molecule for it to be included in tddft kernel')
         parser.add_argument('--max_solvent_mols','-M',default=None,type=int,help='Maximum number of solvent molecules to include (chosen randomly)')
         parser.add_argument('--max_atoms','-H',default=None,type=int,help='Maximum number of atoms to include in carved sphere')
-        parser.add_argument('--boxsize','-B',default='50.0',type=float,help='Size of box in which electronic excitation calculation is performed')
+        parser.add_argument('--boxsize','-B',default=None,help='Size of box in which electronic excitation calculation is performed (None for non-periodic calcs)')
         parser.add_argument('--rotate','-O',default=True,type=bool,help='If True, rotate the molecule to align with xy plane')
         parser.add_argument('--output','-o',default='nw',type=str,help='Format of output: takes values nw, dat, nwchem and onetep (former 2 write input files only, latter 2 perform calculation)')
         parser.add_argument('--nroots','-n',default=5,type=int,help='Number of excitations to calculate')
