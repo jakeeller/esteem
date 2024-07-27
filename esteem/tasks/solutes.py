@@ -446,7 +446,7 @@ class SolutesTask:
             outfile = out_path+"/"+seed+".xyz"
             if not path.exists(infile):
                 print(f'Skipping rotate and centre operation for: {seed}',
-                      ' - no input file')
+                      '- no input file')
                 continue
             try:
                 rot = read(infile,0)
@@ -455,7 +455,7 @@ class SolutesTask:
                 continue
             if rot.get_chemical_symbols().count('C') < 2:
                 print(f'Skipping rotate and centre operation for: {seed}',
-                      ' - not enough C atoms')
+                      '- not enough C atoms')
                 write(outfile,rot)
                 continue
             try:

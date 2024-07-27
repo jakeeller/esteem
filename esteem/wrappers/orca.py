@@ -301,7 +301,8 @@ class ORCAWrapper():
         forces = model_opt.get_forces()
         energy = calc_orca.results['energy'] # avoid second calculation 
         #energy = model_opt.get_potential_energy()
-        model_opt.positions = calc_orca.atoms.positions
+        from ase.io import read
+        model_opt.positions = read(f"{label}_trj.xyz").positions
         if cleanup and not readonly:
             self.cleanup(label)
         if not readonly:
