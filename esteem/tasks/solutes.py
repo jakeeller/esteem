@@ -1,17 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
-
-
 """Runs DFT and TDDFT calculations on Solute (or Solvent) molecules, in implicit solvent"""
 
-
 # # Main driver routine
-
-# In[ ]:
-
-
 class SolutesTask:
 
     def __init__(self,**kwargs):
@@ -192,7 +184,7 @@ class SolutesTask:
             if target is not None and target !=0:
                 infile = f'{in_path}/{baseseed}.xyz'
             if not path.exists(infile):
-                print(f'Skipping {task} {sol_str} for: {seed} - no input file')
+                print(f'Skipping {task} {sol_str}for: {seed} - no input file')
                 return (None, None, None)
         solute = read(infile,index=slice(0,None))
         nconf = len(solute)
@@ -202,10 +194,10 @@ class SolutesTask:
             solute_done = read(outfile,index=slice(0,None))
             nconf_done = len(solute_done)
             if nconf_done == nconf:
-                print(f'Skipping {task} {sol_str} for: {seed} - output file already present')
+                print(f'Skipping {task} {sol_str}for: {seed} - output file already present')
                 return (None, None, None)
             else:
-                print(f'Continuing {task} {sol_str} for: {seed} - output file contains {nconf_done} conformers')
+                print(f'Continuing {task} {sol_str}for: {seed} - output file contains {nconf_done} conformers')
                 solute[0:nconf_done] = solute_done[0:nconf_done]
         else:
             nconf_done = 0
@@ -241,7 +233,7 @@ class SolutesTask:
         from os import path, makedirs, getcwd, chdir
 
         if solvent is not None:
-            sol_str = f'in {self.solvstr(solvent)} solvent'
+            sol_str = f'in {self.solvstr(solvent)} solvent '
         else:
             sol_str = ''
 
@@ -293,7 +285,7 @@ class SolutesTask:
                 write(f'{origdir}/{outfile}',solute[0:iconf+1])
 
             chdir(origdir)
-            print('Writing to ',outfile)
+            print(f'Writing to {outfile}')
             write(outfile,solute)
 
     # Attempt to find best rotamer for each solute
@@ -453,7 +445,7 @@ class SolutesTask:
             infile = in_path+"/"+seed+".xyz"
             outfile = out_path+"/"+seed+".xyz"
             if not path.exists(infile):
-                print('Skipping rotate and centre operation for: ',seed,
+                print(f'Skipping rotate and centre operation for: {seed}',
                       ' - no input file')
                 continue
             try:
@@ -462,7 +454,7 @@ class SolutesTask:
                 print(f'Could not read file: {infile}')
                 continue
             if rot.get_chemical_symbols().count('C') < 2:
-                print('Skipping rotate and centre operation for: ',seed,
+                print(f'Skipping rotate and centre operation for: {seed}',
                       ' - not enough C atoms')
                 write(outfile,rot)
                 continue
@@ -594,7 +586,7 @@ class SolutesTask:
         from os import path, makedirs, getcwd, chdir
 
         if solvent is not None:
-            sol_str = f'in {self.solvstr(solvent)} solvent'
+            sol_str = f'in {self.solvstr(solvent)} solvent '
         else:
             sol_str = ''
         target = calc_params['target']
@@ -677,7 +669,7 @@ class SolutesTask:
         from os import path, makedirs, getcwd, chdir
 
         if solvent is not None:
-            sol_str = f'in {self.solvstr(solvent)} solvent'
+            sol_str = f'in {self.solvstr(solvent)} solvent '
         else:
             sol_str = ''
         wdir = f'{out_path}'
@@ -719,7 +711,7 @@ class SolutesTask:
                 except SyntaxError:
                     raise Exception('Keyboard Interrupt')
                 except Exception as e:
-                    print('Vibrational Frequencies failed for: ',seed)
+                    print(f'Vibrational Frequencies {sol_str}failed for: {seed}')
                     print('Exception was: ',e)
                 write(origdir+"/"+outfile,solute[0:iconf+1])
             chdir(origdir)
@@ -769,10 +761,6 @@ class SolutesTask:
         for arg in vars(args):
             if arg not in default_args:
                 raise Exception(f"Unrecognised argument '{arg}'")
-
-
-# In[ ]:
-
 
 def get_parser():
     return SolutesTask().make_parser()

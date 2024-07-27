@@ -767,9 +767,9 @@ def clusters_driver(all_solutes,all_solvents,seed,task,make_sbatch=None,dryrun=F
 
 def get_solu_solv_names(seed):
     # Guess solute and solvent names from seed name
-    solu = seed.split("_")[0]
+    solu = "_".join(seed.split("_")[0:-1])
     try:
-        solv = seed.split("_")[1]
+        solv = seed.split("_")[-1]
     except:
         solv = "NO_SOLVENT_FOUND"
     return solu,solv

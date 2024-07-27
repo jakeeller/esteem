@@ -145,7 +145,7 @@ class ORCAWrapper():
             return 'CH2Cl2'
         elif solvent=='cycl':
             return 'cyclohexane'
-        elif solvent=='watr':
+        elif solvent=='watr' or solvent=='wtr':
             return 'water'
         else:
             return solvent
