@@ -22,8 +22,8 @@ solutes_task.basis = '6-31G'
 solutes_task.func = 'PBE'
 solutes_task.directory = 'gs_PBE'
 solutes_task.wrapper = orca.ORCAWrapper()
-solutes_task.script_settings = parallel.get_default_script_settings(solutes_task.wrapper)
 solutes_task.wrapper.setup(nprocs=8)
+solutes_task.script_settings = parallel.get_default_script_settings(solutes_task.wrapper)
 
 solvate_task.boxsize = 18
 solvate_task.ewaldcut = 10

@@ -47,7 +47,13 @@ nanosimd_1node = {'partition': 'nanosimd',
                   'time': '48:00:00',
                   'mem': '14000mb',
                   'declarations': ''}
-
+nanosimd_8mpi = {'partition': 'nanosimd',
+                  'nodes': 1,
+                  'ntask': 8,
+                  'ncpu':  1,
+                  'time': '48:00:00',
+                  'mem': '14000mb',
+                  'declarations': ''}
 nanosim_1core = deepcopy(nanosim_1node)
 nanosim_1core['ntask'] = 1
 
@@ -156,7 +162,7 @@ def get_default_script_settings(wrapper):
     if "warwick.ac.uk" in host:
         # local SCRTP
         if "theory" in host or "scrtp" in host:
-            script_settings = deepcopy(nanosimd_1node)
+            script_settings = deepcopy(nanosimd_8mpi)
         elif "stan" in host:
             script_settings = deepcopy(nanosim_1node)
         if isinstance(wrapper,ORCAWrapper):

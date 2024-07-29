@@ -58,7 +58,7 @@ def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suff
     Takes lists of calculators, targets, random seeds, and strings stating the ML method
     and the ground truth method
     """
-    
+
     # By default, the trajectory for validation is the same size as the main traj
     init_min_snapshots = task.min_snapshots
     init_max_snapshots = task.max_snapshots
@@ -243,15 +243,15 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
                         if key=='train':
                             task.traj_links[gen_char+traj_char] = traj_dest
                             task.which_trajs += [f'{gen_char+traj_char}']
-                            #print(f'adding: {calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs}')
+                            #print(f'adding: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs}')
                         elif key=='valid':
                             task.traj_links_valid[gen_char+traj_char] = traj_dest
                             task.which_trajs_valid += [f'{gen_char}{traj_char}']
-                            #print(f'adding: {calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_valid}')
+                            #print(f'adding: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_valid}')
                         elif key=='test':
                             task.traj_links_test[gen_char+traj_char] = traj_dest
                             task.which_trajs_test += [f'{gen_char}{traj_char}']
-                            #print(f'adding: {calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_test}')
+                            #print(f'adding: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_test}')
                         offset = offset + 1
 
 from esteem.tasks.ml_training import MLTrainingTask
@@ -271,6 +271,8 @@ def create_mltrain_tasks(train_task:MLTrainingTask,train_calcs,seeds,targets,ran
     if 'max_num_epochs' in train_task.wrapper.train_args:
         init_epochs = train_task.wrapper.train_args['max_num_epochs'] # MACE specific
         swa_init_epochs = train_task.wrapper.train_args['start_swa']  # MACE specific
+        if swa_init_epochs is None:
+            swa_init_epochs = 100000
 
     for target in targets:
         for t in train_calcs:

@@ -925,7 +925,7 @@ def get_ref_mol_energy(wrapper,ref_mol,solv,calc_params,ref_mol_xyz,ref_mol_dir,
                 if ref_mol_model.cell.volume == 0.0:
                     from ase.geometry import Cell
                     ref_mol_model.cell = Cell([[40,0,0],[0,40,0],[0,0,40]])
-    ref_mol_energy,calc = wrapper.singlepoint(ref_mol_model,
+    ref_mol_energy = wrapper.singlepoint(ref_mol_model,
                 ref_mol_seed,calc_params,forces=False,dipole=False,readonly=True)
     chdir(orig_dir)
     return ref_mol_energy, ref_mol_model

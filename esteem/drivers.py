@@ -77,8 +77,11 @@ def main(all_solutes,all_solvents,all_solutes_tasks={},all_solvate_tasks={},
             for targ in all_solutes_tasks:
                 if target is not None and targ!=target:
                     continue
-                all_solutes_tasks[targ].script_settings['scriptname'] = scriptname
-                solutes_script_settings = all_solutes_tasks[targ].script_settings
+                if isinstance(all_solutes_tasks[targ].script_settings,dict):
+                    all_solutes_tasks[targ].script_settings['scriptname'] = scriptname
+                    solutes_script_settings = all_solutes_tasks[targ].script_settings
+                else:
+                    solutes_script_settings = {}
                 make_script(seed=seed,task='solutes',target=targ,**solutes_script_settings)
                 make_script(seed=seed,task='solvents',target=targ,**solutes_script_settings)
         else: # just one SolutesTask
@@ -95,9 +98,12 @@ def main(all_solutes,all_solvents,all_solutes_tasks={},all_solvate_tasks={},
                 for targ in tasks:
                     if target is not None and targ!=target:
                         continue
-                    print(tasks[targ].script_settings)
-                    tasks[targ].script_settings['scriptname'] = scriptname
-                    make_script(seed=seed,task=tasks[targ].task_command,target=targ,**tasks[targ].script_settings)
+                    if isinstance(tasks[targ].script_settings,dict):
+                        tasks[targ].script_settings['scriptname'] = scriptname
+                        script_settings = tasks[targ].script_settings
+                    else:
+                        script_settings = {}
+                    make_script(seed=seed,task=tasks[targ].task_command,target=targ,**script_settings)
             else:
                 tasks.script_settings['scriptname'] = scriptname
                 make_script(seed=seed,task=tasks.task_command,target=target,**tasks.script_settings)
@@ -177,6 +183,8 @@ def get_actual_args(all_args,target,task):
             prev_stem = ""
             key_suffix = ""
             for key in all_keys:
+                print(key)
+                continue
                 key_parts = key.split('_')
                 print(key,key_parts)
                 prev_key_suffix = key_suffix
@@ -194,10 +202,10 @@ def get_actual_args(all_args,target,task):
                         print("_[",end="")
                     prev_stem = key_stem
                 print(key_suffix+",",end="")
-            if prev_key_suffix!="":
-                print("]\n")
-            else:
-                print("\n")
+            #if prev_key_suffix!="":
+            #    print("]\n")
+            #else:
+            #    print("\n")
             raise e
             
     else:
@@ -273,6 +281,7 @@ def solutes_driver(all_solutes,all_solvents,task):
         all_solvents_to_run = all_solvents.copy()
 
     for solvent in all_solvents_to_run:
+        print(f'Setting solvent to {solvent}')
         task.solvent = solvent
         if task.solvent_settings is not None and task.solvent is not None:
             task.solvent = task.solvent_settings
@@ -286,9 +295,6 @@ def solutes_driver(all_solutes,all_solvents,task):
 
 
 # # Run calculations on individual Solvent molecules
-
-# In[ ]:
-
 
 from esteem.tasks import solutes
 
@@ -533,7 +539,6 @@ def solvate_driver(all_solutes,all_solvents,seed,task,make_sbatch=None):
             # Go back to base directory
             print(f'# Returning to parent directory\n\n')
             chdir('..')
-
         # We are in a subdirectory already so run a particular calculation
         elif base_path==md_path:
             # Now run MD in md_path
@@ -547,6 +552,7 @@ def solvate_driver(all_solutes,all_solvents,seed,task,make_sbatch=None):
                     raise Exception(f"task.boxsize is a dictionary but contains no entry for solvent '{solvent}'")
             task.setup()
             task.run()
+        print(base_path,md_path,solvent,solute)
 
 
 # # Run Clusters script on MD snapshots to extract region near solute
@@ -841,7 +847,7 @@ def atom_energies_driver(atomen):
     if hasattr(atomen,'ref_mol_dir'):
         ref_mol_dir = atomen.ref_mol_dir
     else:
-        ref_mol_dir = 'PBE0'
+        ref_mol_dir = 'gs_PBE0'
     if hasattr(atomen,'ref_mol_xyz'):
         ref_mol_xyz = f'{ref_mol_dir}/{atomen.ref_mol_xyz}'
     else:
@@ -902,10 +908,10 @@ def atom_energies_driver(atomen):
         if atom=='C':
             spin=0
         if wrapper_is_ml:
-            atom_energies[atom],forces,dipole,calc = atomen.wrapper.singlepoint(atom_model[atom],
+            atom_energies[atom],forces,dipole = atomen.wrapper.singlepoint(atom_model[atom],
                 f'{atomen.seed}',calc_params,solvent=solv,dipole=True,forces=True,)
         else:
-            atom_energies[atom],forces,dipole,calc = atomen.wrapper.singlepoint(atom_model[atom],
+            atom_energies[atom],forces,dipole = atomen.wrapper.singlepoint(atom_model[atom],
                 f'{atomen.seed}_{atom}',calc_params,solvent=solv,dipole=True,forces=True,spin=spin)
     
     # Rescale atom energies
@@ -913,7 +919,7 @@ def atom_energies_driver(atomen):
     for i in atom_energies:
         ni = ref_mol_model.symbols.count(i)
         sum_ni_Ei += atom_energies[i]*ni
-    E_mol = ref_mol_energy
+    E_mol = ref_mol_energy[0]
 
     alpha = E_mol/(sum_ni_Ei)
     print(f'# Sum of atomic energies for reference model: {sum_ni_Ei} \nRescaling by: {alpha}')

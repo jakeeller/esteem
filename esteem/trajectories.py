@@ -485,7 +485,6 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
         all_targets = target
     else:
         all_targets = [target]
-    
     if input_traj_range is None:
         input_traj_range = range(0,len(intraj))
 
@@ -594,15 +593,14 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
                                               continuation=cont,readonly=readonly)
             try:
                 if calc_forces and calc_dipole:
-                    energy, forces, dipole, calc = results
+                    energy, forces, dipole = results
                 elif calc_forces and not calc_dipole:
-                    energy, forces, calc = results
+                    energy, forces = results
                 else:
-                    energy, calc = results
+                    energy = results
                 if len(frame) != len(forces) and not(hasattr(energy,"__len__")):
                     print(f'# ERROR: length of frame {i} ({len(frame)}) does not match length of forces array ({len(forces)})')
                     raise Exception('Length matching failure')
-                frame.calc = calc
                 success = True
             except KeyboardInterrupt:
                 # Always exit if Ctrl-C pressed
@@ -610,7 +608,6 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
             except Exception as e:
                 # Any other error should be logged as a FAIL and zeros logged.
                 energy = 0.0
-                frame.calc.results['dipole'] = np.zeros(3)
                 dipole = np.zeros(3)
                 forces = np.zeros([len(frame),3])
                 print(e)

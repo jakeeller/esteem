@@ -126,7 +126,7 @@ mltraj_task.snap_wrapper = MACEWrapper()
 mltraj_task.geom_prefix = 'gs_PBE'
 mltraj_task.calc_seed = "{solu}_{solv}"
 mltraj_task.md_init_traj_link = f"{{solu}}_{{solv}}_exc/{{solu}}_{{solv}}_gs_A_carved.traj"
-mltraj_tasks = create_mltraj_tasks(mltraj_task,train_calcs=train_calcs,targets=targets,
+all_mltraj_tasks = create_mltraj_tasks(mltraj_task,train_calcs=train_calcs,targets=targets,
                     rand_seed=rand_seed,meth="",traj_suffix='mldyn',
                     md_wrapper=mltraj_task.wrapper,snap_wrapper=mltraj_task.snap_wrapper,
                     two_targets=True)
@@ -146,7 +146,7 @@ drivers.main(all_solutes,all_solvents,
              all_clusters_tasks=all_clusters_tasks,
              all_mltrain_tasks=mltrain_tasks,
              all_qmd_tasks=solutes_task,
-             all_mltraj_tasks=mltraj_tasks,
+             all_mltraj_tasks=all_mltraj_tasks,
              make_script=parallel.make_sbatch)
 # Quit - function defs for interactive use might follow
 exit()

@@ -76,10 +76,7 @@ class MACEWrapper():
 
         if self.calc is not None: 
             return self.calc
-        try:
-            from mace.calculators import MACECalculator,EnergyDipoleMACECalculator
-        except:
-            from mace.calculators import MACECalculator
+        from mace.calculators import MACECalculator
         from os import path
 
         # Find checkpoint file(s) for calculator
@@ -103,10 +100,7 @@ class MACEWrapper():
                         checkpoints_dir=f"{dirname}/checkpoints"
                         checkpoint = f"{checkpoints_dir}/{calcfn}_run-{suffixes[suff]}.model"
                 print(f'# Loading Calculator from: {checkpoint} with args: {self.load_args}',flush=True)
-                try:
-                    calc = EnergyDipoleMACECalculator(checkpoint,device="cuda",default_dtype='float64')
-                except:
-                    calc = MACECalculator(checkpoint,device="cuda",default_dtype='float64',model_type='EnergyDipoleMACE')
+                calc = MACECalculator(checkpoint,device="cuda",default_dtype='float64',model_type='EnergyDipoleMACE')
                 if isinstance(suffix,dict) or isinstance(calctarget,list):
                     self.calc.append(calc)
                 else:
@@ -265,7 +259,7 @@ class MACEWrapper():
         for arg in ['save_cpu','restart_latest','keep_checkpoints','ema','swa','amsgrad',
                     'wandb','mean','std','distributed','save_all_checkpoints',
                     'foundation_model','foundation_model_readout','pair_repulsion',
-                    'statistics_file','atomic_numbers']:
+                    'statistics_file','atomic_numbers','compute_polarizability']:
             if arg in train_args:
                 if train_args[arg] is not True:
                     del train_args[arg]

@@ -168,7 +168,7 @@ class AmberWrapper():
         # run tleap to set up prmtop
         f = open(f'{seed}_tleap.in', 'w')
         tleap_str =  ("source leaprc.protein.ff14SB\n" +
-                      "source leaprc.gaff\n" +
+                      "source leaprc.gaff2\n" +
                       f"mol = loadmol2 {seed}.mol2\n" +
                       f"saveamberparm mol {seed}.prmtop {seed}.inpcrd\n" +
                       "quit\n")
@@ -864,8 +864,8 @@ ntpr=1,ntwf=1,ntwe=1,ntwx=1 ! (output frequencies)
 
             calc_snap.read_coordinates(model,calc_snap.outcoordfile)
             new_ke = model.get_kinetic_energy()
-
-            print("Pot, Kin Energy after snapshot",str(step),":",new_pe, new_ke)
+            new_temp = model.get_temperature()
+            print("Pot Energy, Kin Energy, Temp after snapshot",str(step),":",new_pe, new_ke, new_temp)
 
     
     def traj_write(self,atoms,traj):
