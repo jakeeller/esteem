@@ -191,7 +191,7 @@ class SpectraTask:
             for f in self.files:
                 if not os.path.isfile(f):
                     raise OSError(f'# Could not read file {f}')
-                stick_spectrum, transition_origins = read_excitations(f)
+                stick_spectrum, transition_origins = self.wrapper.read_excitations(f)
                 if self.vib_files is not None:
                     vibronic_excitations = []
                     s_elec = stick_spectrum
@@ -257,6 +257,7 @@ class SpectraTask:
             ax.set_ylabel('Absorbtion (arb)')
         spec_plot = plot_spectrum(broad_spectrum,rgb,fig,ax,label,linestyle,linewidth,yoffs)
         if self.output is not None:
+            print(f'# Saving to {self.output}')
             fig.savefig(self.output)
             
         return spec_plot,fig,ax

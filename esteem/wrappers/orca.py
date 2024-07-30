@@ -472,7 +472,8 @@ end
             if getexcit and "ABSORPTION SPECTRUM VIA TRANSITION VELOCITY DIPOLE MOMENTS" in line:
                 getexcit = False
                 continue
-            if getexcit and len(line.split())>0:
+            if getexcit and len(line.split())>1:
+                # ORCA5 version
                 if line.split()[0].isdigit():
                     #print(line)
                     root = int(line.split()[0])
@@ -481,6 +482,17 @@ end
                         osc = 0.0
                     else:
                         osc = float(line.split()[3])
+                    s_excit.append((root,energy,osc))
+                # ORCA6 version
+                elif line.split()[1]=='->':
+                    print(line)
+                    line.split()[0].isdigit()
+                    root = int(line.split()[2].split("-")[0])
+                    energy = float(line.split()[4])*invcm
+                    if 'spin' in line.split()[3]:
+                        osc = 0.0
+                    else:
+                        osc = float(line.split()[6])
                     s_excit.append((root,energy,osc))
         #calc.results['excitations'] = np.array(s_excit)
         #calc.results['transition_origins'] = trans_lines
