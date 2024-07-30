@@ -182,8 +182,12 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
     genend = gen
     if type(task)==MLTestingTask and gen is not None:
         if only_gen is not None:
-            genstart = only_gen
-            genend = only_gen + 1
+            if only_gen==-1:
+                genstart = 0
+                genend = 0
+            else:
+                genstart = only_gen
+                genend = only_gen + 1
         else:
             genend = gen + 1
     all_used_trajs = task.which_trajs.copy()
@@ -456,14 +460,17 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
     return new_spectra_tasks
 
 
-def setup_scripts(scriptname,seed,targstr,num_calcs,calc_suffix,method,script_settings,make_sbatch):
+def setup_scripts(scriptname,seed,targstr,num_calcs,calc_suffix,method,script_settings,make_sbatch,allseed=None):
 
     store_decs = script_settings['declarations']
+    if allseed is None:
+        allseed = seed
     script_settings['declarations'] += f'''
 M="{calc_suffix[-1]}"
 T="{targstr}"
 scr="{scriptname}"
-S="{seed}"
+SP="{seed}"
+SA="{allseed}"
 C="{num_calcs}"
 letters=({{a..z}})
 W="{method}"
@@ -477,14 +484,19 @@ echo "X="$X "YP="$YP
 
     # Write job script for submission to HPC cluster
     for task in ['mltrain','mltraj','mltest']:
-        script_settings['jobname'] = f'{seed}_{targstr}_{calc_suffix}_{task}'
         script_settings['target'] = '$T"_"$W"ac"$X$M$Y'
         if task=="mltraj":
             script_settings['target'] += '"x"$C'
         script_settings['scriptname'] = '$scr'
-        script_settings['seed'] = '$S'
+        if task=='mltrain' or task=='mltest':
+            script_settings['seed'] = '$SA'
+            script_settings['jobname'] = f'{allseed}_{targstr}_{calc_suffix}_{task}'
+            script_settings['postfix'] = f'| tee -a $SA"_"{script_settings["target"]}"_"{task}$LOGSUFFIX.log'
+        else:
+            script_settings['jobname'] = f'{seed}_{targstr}_{calc_suffix}_{task}'
+            script_settings['seed'] = '$SP'
+            script_settings['postfix'] = f'| tee -a $SP"_"{script_settings["target"]}"_"{task}$LOGSUFFIX.log'
         script_settings['num_threads'] = 1
-        script_settings['postfix'] = f'| tee -a $S"_"{script_settings["target"]}"_"{task}$LOGSUFFIX.log'
         make_sbatch(task=task,**script_settings)
 
     script_settings['declarations'] = store_decs

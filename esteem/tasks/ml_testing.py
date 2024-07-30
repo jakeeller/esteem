@@ -270,7 +270,7 @@ def compare_wrapper_to_traj(wrapper,calc_params,trajin,trajout_file):
         err=False
         seed=f"{calc_params['calc_seed']}{i:4d}"
         
-        e_calc, f_calc, d_calc, calc_ml = wrapper.singlepoint(frame,seed,calc_params,
+        e_calc, f_calc, d_calc = wrapper.singlepoint(frame,seed,calc_params,
              forces=True,dipole=True)
 
         # Calculate RMS and Max force errors

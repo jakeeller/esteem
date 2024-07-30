@@ -154,9 +154,11 @@ def main(all_solutes,all_solvents,all_solutes_tasks={},all_solvate_tasks={},
         mltest_driver(mltest_task,all_solutes,all_solvents)
     if ('traj' in task):
         cleanup_only = True if 'cleanup' in task else False
+        setup_only = True if 'setup' in task else False
         mltraj_task = get_actual_args(all_mltraj_tasks,target,'mltraj')
         mltraj_task.seed = seed
-        mltraj_driver(mltraj_task,all_solutes,all_solvents,cleanup_only=cleanup_only)
+        mltraj_driver(mltraj_task,all_solutes,all_solvents,
+                      cleanup_only=cleanup_only,setup_only=setup_only)
     if ('spectra' in task.split()):
         spectra_task = get_actual_args(all_spectra_tasks,target,'spectra')
         #warp_params = spectral_warp_driver(all_solutes,all_solvents,spectra_task)
@@ -907,6 +909,8 @@ def atom_energies_driver(atomen):
             spin=0.5
         if atom=='C':
             spin=0
+        if atom=='Cl':
+            spin=0.5
         if wrapper_is_ml:
             atom_energies[atom],forces,dipole = atomen.wrapper.singlepoint(atom_model[atom],
                 f'{atomen.seed}',calc_params,solvent=solv,dipole=True,forces=True,)
@@ -1316,7 +1320,7 @@ def mltest_driver(mltest,all_solutes,all_solvents):
         if os.path.isfile(test_calc_log):
             os.remove(test_calc_log)
 
-def mltraj_driver(mltraj,all_solutes,all_solvents,cleanup_only=False):
+def mltraj_driver(mltraj,all_solutes,all_solvents,cleanup_only=False,setup_only=False):
     from os import symlink, path, remove
     from esteem.trajectories import get_trajectory_list,targstr,merge_traj
 
@@ -1406,6 +1410,8 @@ def mltraj_driver(mltraj,all_solutes,all_solvents,cleanup_only=False):
         mltraj.calc_seed = mltraj.seed
 
     # Run the MLTraj task
+    if setup_only:
+        return
     if not cleanup_only:
         mltraj.run()
     

@@ -253,9 +253,9 @@ class MACEWrapper():
                     del train_args[arg]
         if 'wandb_log_hypers' in train_args:
             del train_args['wandb_log_hypers']
-        for arg in train_args:
-            if train_args[arg] is False:
-                print(arg)
+        #for arg in train_args:
+        #    if train_args[arg] is False:
+        #        print(arg)
         for arg in ['save_cpu','restart_latest','keep_checkpoints','ema','swa','amsgrad',
                     'wandb','mean','std','distributed','save_all_checkpoints',
                     'foundation_model','foundation_model_readout','pair_repulsion',

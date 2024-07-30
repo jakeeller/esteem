@@ -18,7 +18,7 @@ gnu_parallel_declarations = (f'NJOBS=$((${{SLURM_NTASKS}}/${{TASKS_PER_PROG}}))\
 gnu_parallel_command = "seq $SLURM_ARRAY_TASK_ID $(($SLURM_ARRAY_TASK_ID+99)) | parallel $PARALLEL_OPTS 'export SLURM_ARRAY_TASK_ID={}; python"
 
 bash_loop_declarations = (f"""
-SMAX=1
+SMAX=5
 istart=$SLURM_ARRAY_TASK_ID
 iend=$(($SLURM_ARRAY_TASK_ID+SMAX))
 for ((i=istart;i<iend;i++)); do
