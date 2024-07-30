@@ -1422,7 +1422,7 @@ def mltraj_driver(mltraj,all_solutes,all_solvents,cleanup_only=False,setup_only=
     if mltraj.carve_trajectory_radius is not None:
         # If we provided a dictionary for the radius, find the specific entry that we need
         if isinstance(mltraj.carve_trajectory_radius,dict):
-            solu_solv = f'{solute}_{solvent}'
+            solu_solv = f'{solu}_{solv}'
             if solu_solv in mltraj.carve_trajectory_radius:
                 mltraj.carve_trajectory_radius = mltraj.carve_trajectory_radius[solu_solv]
             elif solv in mltraj.carve_trajectory_radius:
