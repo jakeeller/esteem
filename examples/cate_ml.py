@@ -48,12 +48,12 @@ funcs = ['PBE','PBE0','wB97M-D3BJ']
 basis_sets = ['def2-TZVPPD']
 for basis in basis_sets:
     for func in funcs:
-        for target in targets:  
-            prefix = f'{target}_{func}'
+        for target in targets:
+            prefix = f'{targets[target]}_{func}'
             solutes_task.disp = True if 'D3BJ' not in func else False
             solutes_task.func = func
             solutes_task.basis = basis
-            solutes_task.target = targets[target]
+            solutes_task.target = target
             solutes_task.directory = prefix
             all_solutes_tasks[prefix] = deepcopy(solutes_task)
 

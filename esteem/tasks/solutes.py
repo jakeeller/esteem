@@ -8,7 +8,8 @@ class SolutesTask:
 
     def __init__(self,**kwargs):
         self.wrapper = None
-        self.script_settings = None        
+        self.script_settings = None
+        self.task_command = "solutes"
         default_args = self.make_parser().parse_args("")
         # Set values of all parameters (defaults unless overridden)
         for arg in vars(default_args):
