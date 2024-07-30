@@ -638,9 +638,9 @@ class MACEWrapper():
             e_calc = []
             f_calc = []
             d_calc = []
-            for calc in calc_ml:
-                calc.results = {}
-                model.calc = calc
+            for tcalc in calc_ml:
+                tcalc.results = {}
+                model.calc = tcalc
                 e_calc.append(model.get_potential_energy())
                 if forces:
                     f_calc.append(model.get_forces())
@@ -657,6 +657,7 @@ class MACEWrapper():
                 f_calc = np.array(f_calc)
                 model.calc.results["forces"] = f_calc
                 model.calc.results["forces_std"] = np.std(f_calc,axis=1)
+            model.calc = calc_ml
         else:
             model.calc = calc_ml
             e_calc = model.get_potential_energy()
