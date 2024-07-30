@@ -1695,6 +1695,7 @@ def spectral_warp_driver(all_solutes,all_solvents,task,annotation=None):
 def spectra_driver(all_solutes,all_solvents,task,warp_params=None,cluster_spectra=[],c_fig=None,c_ax=None):
 
     import glob
+    from copy import deepcopy
     
     # Set up lists of solute-solvent pairs
     exc_suffix = task.exc_suffix
@@ -1718,10 +1719,12 @@ def spectra_driver(all_solutes,all_solvents,task,warp_params=None,cluster_spectr
     orig_output = task.output
     orig_files = task.files
     orig_dir = getcwd()
+    task.trajectory_backup = deepcopy(task.trajectory)
 
     # Now plot explicit solvent spectrum
     for i,((solvent,fullsolvent),(solute,fullsolute)) in enumerate(all_pairs):
 
+        task.trajectory = deepcopy(task.trajectory_backup)
         if solute in all_solvents:
             continue
 
@@ -1735,7 +1738,7 @@ def spectra_driver(all_solutes,all_solvents,task,warp_params=None,cluster_spectr
             exc_path = f'{solute}_{solvent}_{exc_suffix}'
         else:
             exc_path = f'{solute}_{exc_suffix}'
-        solusolvstr = f'{fullsolute} in {fullsolvent}' if solvent is not None else fullsolute
+        solusolvstr = f'{solute} in {solvent}' if solvent is not None else fullsolute
         
         if base_path in all_paths and base_path!=exc_path:
             continue
