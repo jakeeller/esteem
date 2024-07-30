@@ -6,7 +6,7 @@
 #SBATCH --time=48:00:00
 #SBATCH --mem=1000mb
 #SBATCH --account=su007-ndmh
-#SBATCH --job-name=all_wtr_MACEacu_nohup
+#SBATCH --job-name=cate_meth_MACEacu_nohup
 
 export OMP_NUM_THREADS=1
 origdir=`pwd`
@@ -15,19 +15,19 @@ origdir=`pwd`
 # Selection method
 M="u"
 # All states
-TALL=("gs" "es1")
-NT=2
+TALL=("gs" "es1" "es2")
+NT=3
 TGS=("gs")
 # Base of name of script
-scrbase="ms"
+scrbase="cate_ml"
 scr=$scrbase".py"
 # Base solute_solvent seed
-SM="mg"
-SV="wtr"
+SM="cate"
+SV="meth"
 SA="all_"$SV
 # All the seeds we loop over
-SALL=($SM"_"$SV $SC"_"$SV $SV"_"$SV)
-NS=3
+SALL=($SM"_"$SV $SV"_"$SV)
+NS=2
 # Trajectory characters, Q=Validation Set, U=Training Set
 UALL=("Q" "U")
 AALL=("B" "A")
@@ -46,11 +46,11 @@ W="MACE"
 # Initial clusters name
 IC="solvR2.5"
 # MD name
-MDSTR="md300"
+MDSTR="md"
 # Functional in solutes task
-FUNC="wB97M-D3BJ"
+FUNC="PBE"
 
-# write scripts
+# write AL scripts
 if false; then
 mkscr=$SA"_make_AL_scripts.py"
 # import functions for script writing
@@ -71,7 +71,7 @@ done
 python $mkscr
 fi
 
-# perform solutes run
+# perform solutes tasks
 if true; then
    for TT in ${TALL[@]}; do # loop over targets
       echo Solutes task for $TT"_"$FUNC
@@ -81,9 +81,9 @@ if true; then
    wait
 fi
 
-# perform solvate run
+# perform solvate tasks
 if true; then
-  python $scr solvate $SP $MDSTR | tee -a $SP"_"$MDSTR"_setup.log"
+  python $scr solvate ${SALL[0]} $MDSTR | tee -a $SP"_"$MDSTR"_setup.log"
   for SP in ${SALL[@]}; do # loop over seeds
       echo Solvate task for $SP
       for TT in ${TGS[@]}; do # loop over targets
@@ -95,7 +95,7 @@ if true; then
   wait
 fi
 
-# perform initial clusters runs
+# perform initial clusters tasks
 if true; then
   # run mlclus to set up directory and symlinks for clusters run
   for SP in ${SALL[@]}; do # loop over seeds
@@ -149,8 +149,19 @@ if true; then
   done
 fi
 
-if true; then
-  # setup mltraj folders
+# setup mltrain folders
+if false; then
+   for TT in ${TALL[@]}; do # loop over targets
+       echo Setup Training directory for $SA $TT
+       X=0 
+       python $scr mltrain_setup $SA $TT"_"$W"ac"$X$M"a" | tee -a $SA"_"$TT"_"$W"ac"$X$M"a_mltrain_setup.log"
+       # move script and setup log into folder
+       mv $SA"_"$TT"_"$W"ac"$X$M"a_mltrain_setup.log" $SA"_"$TT"_"$W"ac"$M"_mltrain_sub" $SA"_"$TT"_"$W"ac"
+   done
+fi
+
+# setup mltraj folders
+if false; then
   for SP in ${SALL[@]}; do # loop over seeds
       for TT in ${TALL[@]}; do # loop over targets
           echo Setup Trajectories directory for $SP $TT
@@ -163,7 +174,7 @@ if true; then
   done
 fi
 
-# loop over iterations
+# loop over AL iterations
 for ((X=0;X<=$G;X++))
 do 
   # loop over random seeds
@@ -180,16 +191,18 @@ do
   echo Training Iteration $X for $SA calculators
   for TT in ${TALL[@]}; do # loop over states
       # submit a job for each random seed
+      cd $SA"_"$TT"_"$W"ac"
       sbatch --wait --array=$((X*10))-$((X*10+C-1)) $SA"_"$TT"_"$W"ac"$M"_mltrain_sub" &
+      cd $origdir
   done
   wait
   # run mltraj with committee of calculators
   for SP in ${SALL[@]}; do # loop over seeds
       echo Trajectories for Generation $X for $SP
       for TT in ${TALL[@]}; do # loop over targets
-	  cd $SP"_"$TT"_"$W"ac_mldyn"
 	  if [ $SP == ${SALL[NS-1]} ] && [ $TT == ${TALL[NT-1]} ]; then continue; fi
-	  # submit a mltraj job for each random seed
+	  cd $SP"_"$TT"_"$W"ac_mldyn"
+          # submit a mltraj job for each random seed
           sbatch --wait --array=$((X*10))-$((X*10+C-1)) $SP"_"$TT"_"$W"ac"$M"_mltraj_sub" &
 	  cd $origdir
       done
