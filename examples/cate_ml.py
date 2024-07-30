@@ -51,11 +51,11 @@ for basis in basis_sets:
         for target in targets:  
             prefix = f'{target}_{func}'
             solutes_task.disp = True if 'D3BJ' not in func else False
+            solutes_task.func = func
+            solutes_task.basis = basis
+            solutes_task.target = targets[target]
+            solutes_task.directory = prefix
             all_solutes_tasks[prefix] = deepcopy(solutes_task)
-            all_solutes_tasks[prefix].func = func
-            all_solutes_tasks[prefix].basis = basis
-            all_solutes_tasks[prefix].target = targets[target]
-            all_solutes_tasks[prefix].directory = prefix
 
 # Set up solvate task
 solvate_task.wrapper = AmberWrapper()
@@ -84,11 +84,16 @@ all_clusters_tasks = {}
 # specific radii for combinations of solvent and solute
 # to ensure equal-sized clusters
 solv_rad = {}
-for rad in [2.5,5.0]:
-    solv_rad[rad] = {'cate_meth': rad,
-                     'cate_cycl': rad,
-                     'meth_meth': rad+1.5,
-                     'cycl_cycl': rad+0.5}
+solus = list(all_solutes)[0:-len(list(all_solvents))]
+solvs = list(all_solvents)
+rads = [2.5,5.0]
+for rad in rads:
+    solv_rad[rad] = {}
+    for solu in solus:
+        for solv in solvs:
+            solv_rad[rad][f'{solu}_{solv}'] = rad
+    solv_rad[rad]['meth_meth'] = rad+1.5
+    solv_rad[rad]['cycl_cycl'] = rad+0.5
     # Set up task as per size above
     for traj in ['A','B']:
         clusters_task.max_atoms = 111
@@ -125,7 +130,7 @@ seeds.append("{solv}_{solv}")        # add solvent in solvent
 traj_suffixes = [truth] # what trajectory suffixes to train on
 dir_suffixes = {truth: "solvR2.5"} # what directory suffixes to append to the seeds to find each trajectory suffix in
 ntraj = {(targets[0],truth):1,(targets[1],truth):0} # how many trajectories of each suffix to expect, labelled A, B, C etc
-mltrain_task.wrapper.train_args['max_num_epochs'] = 100
+mltrain_task.wrapper.train_args['max_num_epochs'] = 500
 iter_dir_suffixes = ["mltraj"]
 mltrain_task.ntraj=270
 mltrain_task.geom_prefix = f'gs_{solutes_task.func}/is_opt_{{solv}}'
@@ -177,15 +182,15 @@ targ="es1"
 spectra_task.files = [f'{targ}_{func}/is_tddft_{{solv}}/{{solu}}_{targ}/{{solu}}_{targ}_tddft.out']
 all_spectra_tasks[f'{spec_method}_emis'] = deepcopy(spectra_task)
 
-spec_method = f'AMBERdynR2.5_{solutes_task.func}exc'
+spec_method = f'AMBERdynR{rads[0]}_{solutes_task.func}exc'
 spectra_task.inputformat = "traj"
 spectra_task.output = f'{{solu}}_{{solv}}_{spec_method}.png'
 spectra_task.warp_scheme = None
 spectra_task.wavelength = (300,700,1) # nm start stop step
+spectra_task.wrapper = None
 spectra_task.broad = 0.05
 spectra_task.files = None
-spectra_task.exc_suffix = 'solvR2.5'
-spectra_task.trajectory = [[f"{{solu}}_{{solv}}_solvR2.5/{{solu}}_{{solv}}_gs_A_orca.traj"]]
+spectra_task.exc_suffix = f'solvR{rads[0]}'
 spectra_task.trajectory = [[f"{{solu}}_{{solv}}_gs_A_orca.traj",f"{{solu}}_{{solv}}_es1_A_orca.traj"]]
 all_spectra_tasks[spec_method] = deepcopy(spectra_task)
 
