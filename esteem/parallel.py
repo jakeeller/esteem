@@ -35,7 +35,8 @@ nanosim_1node = {'partition': 'nanosim',
                  'ncpu': 1,
                  'time': '48:00:00',
                  'mem': '61679mb',
-                 'declarations': ''}
+                 'declarations': '',
+                 'endmatter': ''}
 
 nanosim_1core = deepcopy(nanosim_1node)
 nanosim_1core['ntask'] = 1
@@ -46,14 +47,16 @@ nanosimd_1node = {'partition': 'nanosimd',
                   'ncpu':  8,
                   'time': '48:00:00',
                   'mem': '14000mb',
-                  'declarations': ''}
+                  'declarations': '',
+                  'endmatter': ''}
 nanosimd_8mpi = {'partition': 'nanosimd',
                   'nodes': 1,
                   'ntask': 8,
                   'ncpu':  1,
                   'time': '48:00:00',
                   'mem': '14000mb',
-                  'declarations': ''}
+                  'declarations': '',
+                  'endmatter': ''}
 nanosim_1core = deepcopy(nanosim_1node)
 nanosim_1core['ntask'] = 1
 
@@ -167,6 +170,8 @@ def get_default_script_settings(wrapper):
             script_settings = deepcopy(nanosim_1node)
         if isinstance(wrapper,ORCAWrapper):
             wrapper.setup()
+            script_settings['declarations'] = script_settings['declarations'] + bash_loop_declarations
+            script_settings['endmatter'] = script_settings['endmatter'] + bash_loop_endmatter
         if isinstance(wrapper,OnetepWrapper):
             wrapper.setup(onetep_cmd='~/onetep/bin/onetep.csc',
                                    set_pseudo_path='/storage/nanosim/NCP17_PBE_OTF/',

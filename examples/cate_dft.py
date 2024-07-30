@@ -32,8 +32,8 @@ solutes_task.script_settings = parallel.get_default_script_settings(solutes_task
 from ase.calculators.orca import OrcaProfile
 solutes_task.wrapper.orcaprofile=OrcaProfile(command=orcacmd)
 # Setup different XC functionals as different tasks
-funcs = ['PBE','PBE0','wB97M-D3BJ']
-basis_sets = ['def2-TZVPPD']
+funcs = ['PBE0','PBE']
+basis_sets = ['def2-TZVP']
 for basis in basis_sets:
     for func in funcs:
         for target in targets:  
@@ -58,7 +58,7 @@ all_solvate_tasks = {'md': solvate_task}
 # Set up clusters task
 clusters_task.wrapper = ORCAWrapper()
 clusters_task.script_settings = parallel.get_default_script_settings(clusters_task.wrapper)
-clusters_task.wrapper.setup(nprocs=8,maxcore=2500) # change to 32, 7200 for Sulis
+clusters_task.wrapper.setup(nprocs=8,maxcore=2000) # change to 32, 7200 for Sulis
 clusters_task.script_settings['ntask'] = 8 # change to 64 for Sulis
 clusters_task.wrapper.orcaprofile=OrcaProfile(command=orcacmd)
 clusters_task.output = 'orca'
@@ -80,13 +80,13 @@ for rad in rads:
     for solu in solus:
         for solv in solvs:
             solv_rad[rad][f'{solu}_{solv}'] = rad
-    solv_rad[rad]['meth_meth'] = rad+1.5
+    solv_rad[rad]['meth_meth'] = rad+1
     solv_rad[rad]['cycl_cycl'] = rad+0.5
     # Set up task as per size above
     for traj in ['A','B']:
-        clusters_task.max_atoms = 185
-        clusters_task.max_snapshots = 90 if traj=='A' else 100
-        clusters_task.min_snapshots = 0 if traj=='A' else 90
+        clusters_task.max_atoms = 60
+        clusters_task.max_snapshots = 40 if traj=='A' else 50
+        clusters_task.min_snapshots = 0 if traj=='A' else 40
         clusters_task.radius = solv_rad[rad]
         clusters_task.which_traj = traj
         suffix = f'solvR{rad}'
@@ -97,7 +97,7 @@ for rad in rads:
 spectra_task.exc_suffix    = 'solvR2.5'
 spectra_task.broad         = 0.05 # eV
 spectra_task.wavelength    = [300,800,1] # nm
-spectra_task.warp_origin_prefix = 'gs_PBE0/is_tddft'
+spectra_task.warp_origin_prefix = 'gs_PBE/is_tddft'
 spectra_task.warp_dest_prefix   = 'gs_PBE0/is_tddft'
 all_spectra_tasks = {'default': spectra_task}
 

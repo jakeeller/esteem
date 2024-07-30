@@ -144,7 +144,7 @@ def main(all_solutes,all_solvents,all_solutes_tasks={},all_solvate_tasks={},
         qmd_task = get_actual_args(all_qmd_tasks,target,'qmd')
         qmd_task.seed = seed
         qmd_driver(qmd_task,all_solutes,all_solvents)
-    if ('train' in task.split()) or ('mltrain' in task.split()):
+    if any('train' in t for t in task.split()):
         mltrain_task = get_actual_args(all_mltrain_tasks,target,'mltrain')
         setup_only = True if 'setup' in task else False
         mltrain_task.seed = seed

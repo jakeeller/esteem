@@ -24,7 +24,7 @@ from esteem.active_learning import create_spectra_tasks
 all_solutes = {'cate': 'catechol'}
 all_solvents = {'cycl': 'cyclohexane', 'meth': 'methanol'}
 all_solutes.update(all_solvents)
-targets = {'gs':0,'es1':1,'es2':2}
+targets = {0:'gs',1:'es1',2:'es2'}
 orcacmd="/storage/nanosim/orca6/orca_6_0_0_shared_openmpi416_avx2/orca"
 
 # Create tasks
@@ -44,8 +44,8 @@ solutes_task.script_settings = parallel.get_default_script_settings(solutes_task
 from ase.calculators.orca import OrcaProfile
 solutes_task.wrapper.orcaprofile=OrcaProfile(command=orcacmd)
 # Setup different XC functionals as different tasks
-funcs = ['PBE','PBE0','wB97M-D3BJ']
-basis_sets = ['def2-TZVPPD']
+funcs = ['PBE','PBE0']
+basis_sets = ['def2-TZVP']
 for basis in basis_sets:
     for func in funcs:
         for target in targets:
@@ -92,7 +92,7 @@ for rad in rads:
     for solu in solus:
         for solv in solvs:
             solv_rad[rad][f'{solu}_{solv}'] = rad
-    solv_rad[rad]['meth_meth'] = rad+1.5
+    solv_rad[rad]['meth_meth'] = rad+1.0
     solv_rad[rad]['cycl_cycl'] = rad+0.5
     # Set up task as per size above
     for traj in ['A','B']:
@@ -129,7 +129,7 @@ for solu in solus:
 seeds.append("{solv}_{solv}")        # add solvent in solvent
 traj_suffixes = [truth] # what trajectory suffixes to train on
 dir_suffixes = {truth: "solvR2.5"} # what directory suffixes to append to the seeds to find each trajectory suffix in
-ntraj = {(targets[0],truth):1,(targets[1],truth):0} # how many trajectories of each suffix to expect, labelled A, B, C etc
+ntraj = {(targets[0],truth):1,(targets[1],truth):0,(targets[2],truth):0} # how many trajectories of each suffix to expect, labelled A, B, C etc
 mltrain_task.wrapper.train_args['max_num_epochs'] = 500
 iter_dir_suffixes = ["mltraj"]
 mltrain_task.ntraj=270

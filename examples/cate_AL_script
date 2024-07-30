@@ -48,10 +48,8 @@ IC="solvR2.5"
 # MD name
 MDSTR="md"
 # Functional in solutes task
-FUNC="PBE"
+FUNC="PBE0"
 
-# write AL scripts
-if false; then
 mkscr=$SA"_make_AL_scripts.py"
 # import functions for script writing
 cat <<EOT > $mkscr
@@ -67,9 +65,6 @@ for SP in ${SALL[@]}; do
       echo 'setup_scripts("'$scrbase'","'$SP'","'$TT'","'$C'","'$W'ac'$M'","'$W'",script_settings,make_sbatch,"'$SA'")' >> $mkscr
    done
 done
-
-python $mkscr
-fi
 
 # perform solutes tasks
 if true; then
@@ -149,29 +144,43 @@ if true; then
   done
 fi
 
-# setup mltrain folders
-if false; then
+# write AL scripts
+if true; then
+   python $mkscr
+fi
+
+# setup mltrain and mltest folders
+if true; then
    for TT in ${TALL[@]}; do # loop over targets
        echo Setup Training directory for $SA $TT
        X=0 
        python $scr mltrain_setup $SA $TT"_"$W"ac"$X$M"a" | tee -a $SA"_"$TT"_"$W"ac"$X$M"a_mltrain_setup.log"
        # move script and setup log into folder
        mv $SA"_"$TT"_"$W"ac"$X$M"a_mltrain_setup.log" $SA"_"$TT"_"$W"ac"$M"_mltrain_sub" $SA"_"$TT"_"$W"ac"
+       # move test script into folder
+       if [ ! -e $SA"_"$TT"_"$W"ac_test" ]; then
+          mkdir $SA"_"$TT"_"$W"ac_test"
+       fi
+       mv $SA"_"$TT"_"$W"ac"$M"_mltest_sub" $SA"_"$TT"_"$W"ac_test"
    done
 fi
 
 # setup mltraj folders
-if false; then
+if true; then
   for SP in ${SALL[@]}; do # loop over seeds
       for TT in ${TALL[@]}; do # loop over targets
           echo Setup Trajectories directory for $SP $TT
 	  if [ $SP == ${SALL[NS-1]} ] && [ $TT == ${TALL[NT-1]} ]; then continue; fi
 	  X=0 
-          python $scr mltraj_setup $SP $TT"_"$W"ac"$X$M"a_mldyn" | tee -a $SP"_"$TT"_"$W"ac"$X$M"a_mltraj_setup.log"
+          python $scr mltraj_setup $SP $TT"_"$W"ac"$X$M"ax3" | tee -a $SP"_"$TT"_"$W"ac"$X$M"a_mltraj_setup.log"
 	  # move script and setup log into folder
 	  mv $SP"_"$TT"_"$W"ac"$M"_mltraj_sub" $SP"_"$TT"_"$W"ac"$X$M"a_mltraj_setup.log" $SP"_"$TT"_"$W"ac_mldyn"
       done
   done
+fi
+
+if true; then
+   exit # quit for now, until previous bits verified to be working and deactivated
 fi
 
 # loop over AL iterations
