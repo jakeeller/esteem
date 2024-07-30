@@ -146,8 +146,9 @@ def main(all_solutes,all_solvents,all_solutes_tasks={},all_solvate_tasks={},
         qmd_driver(qmd_task,all_solutes,all_solvents)
     if ('train' in task.split()) or ('mltrain' in task.split()):
         mltrain_task = get_actual_args(all_mltrain_tasks,target,'mltrain')
+        setup_only = True if 'setup' in task else False
         mltrain_task.seed = seed
-        mltrain_driver(mltrain_task,all_solutes,all_solvents)
+        mltrain_driver(mltrain_task,all_solutes,all_solvents,setup_only)
     if ('test' in task.split()) or ('mltest' in task.split()):
         mltest_task = get_actual_args(all_mltest_tasks,target,'mltest')
         mltest_task.seed = seed
@@ -1062,7 +1063,7 @@ def make_traj_links(mltrain_task,traj_links,train_dir,prefix,all_solutes,all_sol
                     print(f"# Possible mid-air collision between jobs - link ../{trajnames[traj]} exists")
     chdir(origdir)
 
-def mltrain_driver(mltrain_task,all_solutes={},all_solvents={}):
+def mltrain_driver(mltrain_task,all_solutes={},all_solvents={},setup_only=False):
     """
     Driver to train a Neural Network (or other machine-learning approach) for
     a dataset. Key arguments are the wrapper, which supplies the interface
@@ -1149,6 +1150,8 @@ def mltrain_driver(mltrain_task,all_solutes={},all_solvents={}):
         make_traj_links(mltrain_task,mltrain_task.traj_links_valid,train_dir,'valid',all_solutes,all_solvents)
     if mltrain_task.traj_links_test is not None:
         make_traj_links(mltrain_task,mltrain_task.traj_links_test,train_dir,'test',all_solutes,all_solvents)
+    if setup_only:
+        return
     mltrain_task.run()
     
 def mltest_driver(mltest,all_solutes,all_solvents):
