@@ -267,11 +267,11 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
                                 forces=calc_forces,dipole=calc_dipole,
                                 continuation=cont,readonly=readonly)
             if calc_forces and calc_dipole:
-                energy, forces, dipole, calc = results
+                energy, forces, dipole = results
             elif calc_forces and not calc_dipole:
-                energy, forces, calc = results
+                energy, forces = results
             else:
-                energy, calc = results
+                energy, = results
             energy = model.get_potential_energy()
             if isinstance(energy,list) or isinstance(energy,np.ndarray):
                 energy = energy[0]

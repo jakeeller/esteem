@@ -20,9 +20,9 @@ from esteem.active_learning import create_mltest_tasks
 from esteem.active_learning import create_clusters_tasks
 from esteem.active_learning import create_spectra_tasks
 
-# Setup solute and solvents
-all_solutes = {'methamino_dione': 'O=C(C=C1NC)N(C)C1=O', 'chloro_methamino_dione': 'O=C1N(C(C(NCC)=C1Cl)=O)C'}
-all_solvents = {'wtr': 'water'} #, 'cycl': 'cyclohexane'}
+# Setup solute and solvents and target states
+all_solutes = {'cate': 'catechol'}
+all_solvents = {'cycl': 'cyclohexane', 'meth': 'methanol'}
 all_solutes.update(all_solvents)
 targets = {'gs':0,'es1':1,'es2':2}
 orcacmd="/storage/nanosim/orca6/orca_6_0_0_shared_openmpi416_avx2/orca"
@@ -113,7 +113,7 @@ seed="{solu}_{solv}"
 traj_suffix = truth
 md_suffix = "mldyn"
 md_dir_suffix = 'mldyn'
-rand_seed = {'a':123,'b':456,'c':789,'d':101112,'e':131415}
+rand_seed = {'a':123,'b':456,'c':789} #,'d':101112,'e':131415}
 active_clusters_tasks = create_clusters_tasks(clusters_task,train_calcs=train_calcs,
                                               seed=seed,traj_suffix=traj_suffix,
                                               md_suffix=md_suffix,md_dir_suffix=md_dir_suffix,
@@ -146,10 +146,18 @@ mltraj_task.snap_wrapper = MACEWrapper()
 mltraj_task.geom_prefix = f'gs_{solutes_task.func}'
 mltraj_task.calc_seed = "all_{solv}"
 mltraj_task.md_init_traj_link = f"{{solu}}_{{solv}}_md/{{solu}}_{{solv}}_solv.traj"
+mltraj_task.ntraj = len(rand_seed)
+mltraj_task.md_steps = 5
+mltraj_task.nequil = 200
+mltraj_task.nsnap = 2000
+mltraj_task.store_full_traj = False
+mltraj_task.carve_trajectory_radius = solv_rad[rads[0]]
+mltraj_task.carve_trajectory_max_atoms = clusters_task.max_atoms
+mltraj_task.recalculate_carved_traj = True
 all_mltraj_tasks = create_mltraj_tasks(mltraj_task,train_calcs=train_calcs,targets=targets,
                     rand_seed=rand_seed,meth="",traj_suffix='mldyn',
                     md_wrapper=mltraj_task.wrapper,snap_wrapper=mltraj_task.snap_wrapper,
-                    two_targets=True)
+                    two_targets=False)
 
 # Set up tasks for testing the ML calculators
 mltest_task.wrapper = MACEWrapper()

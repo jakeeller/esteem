@@ -18,19 +18,20 @@ all_solutes.update(all_solvents)
 targets = {'gs':0,'es1':1,'es2':2}
 orcacmd="/storage/nanosim/orca6/orca_6_0_0_shared_openmpi416_avx2/orca"
 
-# Set up tasks
+# Create tasks
 solutes_task = SolutesTask()
 solvate_task = SolvateTask()
 clusters_task = ClustersTask()
 spectra_task = SpectraTask()
 
+# Set up Solutes task
+all_solutes_tasks = {}
 solutes_task.wrapper = ORCAWrapper()
 solutes_task.wrapper.setup(nprocs=8)
-from ase.calculators.orca import OrcaProfile
 solutes_task.script_settings = parallel.get_default_script_settings(solutes_task.wrapper)
+from ase.calculators.orca import OrcaProfile
 solutes_task.wrapper.orcaprofile=OrcaProfile(command=orcacmd)
 # Setup different XC functionals as different tasks
-all_solutes_tasks = {}
 funcs = ['PBE','PBE0','wB97M-D3BJ']
 basis_sets = ['def2-TZVPPD']
 for basis in basis_sets:
@@ -38,14 +39,17 @@ for basis in basis_sets:
         for target in targets:  
             prefix = f'{target}_{func}'
             solutes_task.disp = True if 'D3BJ' not in func else False
+            solutes_task.func = func
+            solutes_task.basis = basis
+            solutes_task.target = targets[target]
+            solutes_task.directory = prefix
             all_solutes_tasks[prefix] = deepcopy(solutes_task)
-            all_solutes_tasks[prefix].func = func
-            all_solutes_tasks[prefix].basis = basis
-            all_solutes_tasks[prefix].target = targets[target]
-            all_solutes_tasks[prefix].directory = prefix
 
 # Set up solvate task
 solvate_task.wrapper = AmberWrapper()
+solvate_task.md_geom_prefix = f"gs_{solutes_task.func}"
+solvate_task.nsteps = 2000
+solvate_task.nsnaps = 500
 solvate_task.script_settings = parallel.get_default_script_settings(solvate_task.wrapper)
 solvate_task.boxsize = 15
 solvate_task.ewaldcut = 9.0
@@ -54,20 +58,30 @@ all_solvate_tasks = {'md': solvate_task}
 # Set up clusters task
 clusters_task.wrapper = ORCAWrapper()
 clusters_task.script_settings = parallel.get_default_script_settings(clusters_task.wrapper)
-clusters_task.wrapper.setup(nprocs=8,maxcore=2500)
+clusters_task.wrapper.setup(nprocs=8,maxcore=2500) # change to 32, 7200 for Sulis
+clusters_task.script_settings['ntask'] = 8 # change to 64 for Sulis
 clusters_task.wrapper.orcaprofile=OrcaProfile(command=orcacmd)
 clusters_task.output = 'orca'
 clusters_task.nroots = 2
+clusters_task.target = [0,1,2]
+clusters_task.func = solutes_task.func
+clusters_task.basis = solutes_task.basis
+clusters_task.ref_mol_dir = f"{{target}}_{solutes_task.func}"
 all_clusters_tasks = {}
 
 # specific radii for combinations of solvent and solute
 # to ensure equal-sized clusters
 solv_rad = {}
-for rad in [2.5,5.0]:
-    solv_rad[rad] = {'cate_meth': rad,
-                     'cate_cycl': rad,
-                     'meth_meth': rad+1.5,
-                     'cycl_cycl': rad+0.5}
+solus = list(all_solutes)[0:-len(list(all_solvents))]
+solvs = list(all_solvents)
+rads = [2.5,5.0]
+for rad in rads:
+    solv_rad[rad] = {}
+    for solu in solus:
+        for solv in solvs:
+            solv_rad[rad][f'{solu}_{solv}'] = rad
+    solv_rad[rad]['meth_meth'] = rad+1.5
+    solv_rad[rad]['cycl_cycl'] = rad+0.5
     # Set up task as per size above
     for traj in ['A','B']:
         clusters_task.max_atoms = 185
@@ -75,9 +89,9 @@ for rad in [2.5,5.0]:
         clusters_task.min_snapshots = 0 if traj=='A' else 90
         clusters_task.radius = solv_rad[rad]
         clusters_task.which_traj = traj
-        suffix = f'solvR{rad}_{traj}'
-        clusters_task.exc_suffix = suffix
-        all_clusters_tasks[suffix] = deepcopy(clusters_task)
+        suffix = f'solvR{rad}'
+        clusters_task.exc_suffix = f"{suffix}"
+        all_clusters_tasks[f"{suffix}_{traj}"] = deepcopy(clusters_task)
 
 # Set up spectra task
 spectra_task.exc_suffix    = 'solvR2.5'
