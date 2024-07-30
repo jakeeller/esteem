@@ -488,6 +488,7 @@ echo "X="$X "YP="$YP
         if task=="mltraj":
             script_settings['target'] += '"x"$C'
         script_settings['scriptname'] = '$scr'
+        script_settings['execpath'] = '../'
         if task=='mltrain' or task=='mltest':
             script_settings['seed'] = '$SA'
             script_settings['jobname'] = f'{allseed}_{targstr}_{calc_suffix}_{task}'
