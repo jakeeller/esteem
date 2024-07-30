@@ -272,7 +272,6 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
                 energy, forces = results
             else:
                 energy, = results
-            energy = model.get_potential_energy()
             if isinstance(energy,list) or isinstance(energy,np.ndarray):
                 energy = energy[0]
             if len(all_targets[0:])>1:

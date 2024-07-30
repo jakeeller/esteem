@@ -96,7 +96,7 @@ if true; then
   for SP in ${SALL[@]}; do # loop over seeds
       echo Clusters Setup for $SP initial
       for TT in ${TGS[@]}; do # loop over targets
-	  if [ $SP == ${SALL[NS-1]} ] && [ $TT == ${TALL[NT-1]} ]; then continue; fi
+	  if [ $SP == ${SALL[NS-1]} ] && [ $TT != ${TALL[0]} ]; then continue; fi
 	  # run a clus job to setup clusters scripts
 	  for UU in ${AALL[@]}; do # loop over B and A
               python $scr mlclus $SP $IC"_"$UU | tee -a $SP"_"$IC"_"$UU"_setup.log"
@@ -106,7 +106,7 @@ if true; then
   for SP in ${SALL[@]}; do # loop over seeds
       echo Clusters Carve for $SP initial
       for TT in ${TGS[@]}; do # loop over states
-	  if [ $SP == ${SALL[NS-1]} ] && [ $TT == ${TALL[NT-1]} ]; then continue; fi
+	  if [ $SP == ${SALL[NS-1]} ] && [ $TT != ${TALL[0]} ]; then continue; fi
           # move to clusters directory
           cd $SP"_"$IC
           # carve the input trajectory
@@ -119,7 +119,7 @@ if true; then
   for SP in ${SALL[@]}; do # loop over seeds
       echo Clusters Run for $SP initial
       for TT in ${TGS[@]}; do # loop over targets
-	  if [ $SP == ${SALL[NS-1]} ] && [ $TT == ${TALL[NT-1]} ]; then continue; fi
+	  if [ $SP == ${SALL[NS-1]} ] && [ $TT != ${TALL[0]} ]; then continue; fi
           # move to clusters directory
           cd $SP"_"$IC
 	  # submit the cluster jobs for B and A
@@ -132,7 +132,7 @@ if true; then
   for SP in ${SALL[@]}; do # loop over seeds
       echo Clusters Assemble for $SP initial
       for TT in ${TGS[@]}; do # loop over targets
-	  if [ $SP == ${SALL[NS-1]} ] && [ $TT == ${TALL[NT-1]} ]; then continue; fi
+	  if [ $SP == ${SALL[NS-1]} ] && [ $TT != ${TALL[0]} ]; then continue; fi
           # move to clusters directory
           cd $SP$"_"$IC
 	  # assemble the completed trajectories
@@ -209,7 +209,7 @@ do
   for SP in ${SALL[@]}; do # loop over seeds
       echo Trajectories for Generation $X for $SP
       for TT in ${TALL[@]}; do # loop over targets
-	  if [ $SP == ${SALL[NS-1]} ] && [ $TT == ${TALL[NT-1]} ]; then continue; fi
+	  if [ $SP == ${SALL[NS-1]} ] && [ $TT != ${TALL[0]} ]; then continue; fi
 	  cd $SP"_"$TT"_"$W"ac_mldyn"
           # submit a mltraj job for each random seed
           sbatch --wait --array=$((X*10))-$((X*10+C-1)) $SP"_"$TT"_"$W"ac"$M"_mltraj_sub" &
@@ -221,7 +221,7 @@ do
   for SP in ${SALL[@]}; do # loop over seeds
       echo Clusters Setup for Generation $X for $SP
       for TT in ${TALL[@]}; do # loop over targets
-	  if [ $SP == ${SALL[NS-1]} ] && [ $TT == ${TALL[NT-1]} ]; then continue; fi
+	  if [ $SP == ${SALL[NS-1]} ] && [ $TT != ${TALL[0]} ]; then continue; fi
 	  # run a mlclus job to setup clusters scripts
 	  for UU in ${UALL[@]}; do # loop over U and Q
               python $scr mlclus $SP $TT"_"$W"ac"$X$M"_"$UU | tee -a $SP"_"$TT"_"$W"ac"$X$M"_setup.log"
@@ -231,7 +231,7 @@ do
   for SP in ${SALL[@]}; do # loop over seeds
       echo Clusters Carve for Generation $X for $SP
       for TT in ${TALL[@]}; do # loop over states
-	  if [ $SP == ${SALL[NS-1]} ] && [ $TT == ${TALL[NT-1]} ]; then continue; fi
+	  if [ $SP == ${SALL[NS-1]} ] && [ $TT != ${TALL[0]} ]; then continue; fi
           # move to clusters directory
           cd $SP"_"$TT"_"$W"ac_mlclus"
           # carve the input trajectory
@@ -244,7 +244,7 @@ do
   for SP in ${SALL[@]}; do # loop over seeds
       echo Clusters Run for Generation $X for $SP
       for TT in ${TALL[@]}; do # loop over targets
-	  if [ $SP == ${SALL[NS-1]} ] && [ $TT == ${TALL[NT-1]} ]; then continue; fi
+	  if [ $SP == ${SALL[NS-1]} ] && [ $TT != ${TALL[0]} ]; then continue; fi
           # move to clusters directory
           cd $SP"_"$TT"_"$W"ac_mlclus"
 	  # submit the cluster jobs for U and Q
@@ -257,7 +257,7 @@ do
   for SP in ${SALL[@]}; do # loop over seeds
       echo Clusters Assemble Generation $X for $SP
       for TT in ${TALL[@]}; do # loop over targets
-	  if [ $SP == ${SALL[NS-1]} ] && [ $TT == ${TALL[NT-1]} ]; then continue; fi
+	  if [ $SP == ${SALL[NS-1]} ] && [ $TT != ${TALL[0]} ]; then continue; fi
           # move to clusters directory
           cd $SP$"_"$TT"_"$W"ac_mlclus"
 	  # assemble the completed trajectories
