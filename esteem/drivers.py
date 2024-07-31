@@ -1461,6 +1461,7 @@ def mltraj_cleanup(mltraj):
             ct.calc_params = mltraj.snap_calc_params
             ct.target = mltraj.snap_calc_params['target']
             ct.nroots = mltraj.target
+            ct.ref_mol_dir = mltraj.ref_mol_dir
             traj_recalc_file = f'{ct.solute}{solvstr}_{targstr(ct.which_target)}_{ct.which_traj}_{ct.output}.traj'
             all_results_present = True
             all_results_present = (all_results_present and 
