@@ -220,7 +220,7 @@ class MACEWrapper():
         
         # Open atom_traj
         from ase.io import Trajectory
-        atom_traj = Trajectory(f'{seed}_atoms_{suffix}.traj')
+        atom_traj = Trajectory(f'{dirname}/{seed}_atoms_{suffix}.traj')
         
         # Now switch working directory to ensure all outputs are together
         orig_dir = os.getcwd()

@@ -56,14 +56,18 @@ class MLTrainingTask:
         #validate_args(args)
 
         trajfn = self.wrapper.calc_filename(self.seed,self.target,prefix=self.calc_prefix,suffix=self.traj_suffix)
+        dirname = self.wrapper.calc_filename(self.seed,self.target,prefix="",suffix=self.calc_dir_suffix)
 
         # If we need an atom trajectory, copy it from traj_suffix to calc_suffix:
         if hasattr(self.wrapper,'atom_energies'):
             atom_traj_file = f'{self.seed}_atoms_{self.traj_suffix}.traj'
             if os.path.isfile(atom_traj_file):
-                atom_calc_file = f'{self.seed}_atoms_{self.calc_suffix}.traj'
-                print(f'# Copying from {atom_traj_file} to {atom_calc_file} for atom energies')
-                copyfile(atom_traj_file,atom_calc_file)
+                atom_calc_file = f'{dirname}/{self.seed}_atoms_{self.calc_suffix}.traj'
+                if not os.path.isfile(atom_calc_file):
+                    print(f'# Copying from {atom_traj_file} to {atom_calc_file} for atom energies')
+                    copyfile(atom_traj_file,atom_calc_file)
+                else:
+                    print(f'# Using {atom_calc_file} for atom energies')
             else:
                 raise Exception(f'# Trajectory file {atom_traj_file} not found for atom energies')
 
