@@ -177,7 +177,8 @@ class ClustersTask:
                 write_subset_trajectory(traj_carved_file,traj_subset_file,nmax=self.subset_selection_nmax,
                                         method=self.subset_selection_method,
                                         min_spacing=self.subset_selection_min_spacing,
-                                        bias_beta=self.subset_selection_bias_beta)
+                                        bias_beta=self.subset_selection_bias_beta,
+                                        stde_thresh=self.subset_selection_stde_thresh)
             else:
                 print(f'# Loading existing subset trajectory: {traj_subset_file}')
                 delete_traj_carved_file = False
@@ -579,6 +580,7 @@ class ClustersTask:
         parser.add_argument('--subset_selection_nmax','-y',default=None,type=int,help='Number of frames to select in subset from input trajectory')
         parser.add_argument('--subset_selection_min_spacing','-g',default=1,type=int,help='Minimum frame spacing for selecting subset from input trajectory')
         parser.add_argument('--subset_selection_bias_beta','-a',default=20,type=int,help='Effective inverse temperature 1/kBT (in eV-1) for bias on U trajectories')
+        parser.add_argument('--subset_selection_stde_thresh','-h',default=0.02,type=float,help='Threshold committee energy standard deviation per atom for trajectory truncation')
         parser.add_argument('--subset_selection_which_traj','-J',default=None,type=str,help='Which trajectory name to read/write subset selection to')
         parser.add_argument('--repeat_without_solute','-W',default=False,type=bool,help='Repeat calculation with no solute present')
         parser.add_argument('--geom_opt_kernel','-G',default=False,type=bool,help='Geometry Optimise the kernel region')
@@ -930,7 +932,8 @@ def get_ref_mol_energy(wrapper,ref_mol,solv,calc_params,ref_mol_xyz,ref_mol_dir,
     chdir(orig_dir)
     return ref_mol_energy, ref_mol_model
 
-def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',min_spacing=1,bias_beta=20.0):
+def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',
+                            min_spacing=1,bias_beta=20.0,stde_thresh=0.02):
     from ase.io import Trajectory
     t=Trajectory(trajin_file)
     to=Trajectory(trajout_file,"w")
@@ -948,6 +951,16 @@ def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',min_spacing
     stde=np.zeros(len(t))
     for i,f in enumerate(t):
         stde[i]=np.std(f.get_potential_energy())/len(f)
+        if stde[i]>stde_thresh:
+            print(f'# Standard deviation per atom at frame {i:05} is: {stde[i]}')
+            print(f'# This is above the threshold                   : {stde_thresh}')
+            print(f'# Truncating trajectory thereafter.')
+            imax = i
+            break
+        else:
+            imax = i + 1
+    t = t[0:imax]
+    stde = stde[0:imax]
     # energy standard deviation-based sorting
     if method=='E':
         args=np.argsort(stde)
