@@ -580,7 +580,7 @@ class ClustersTask:
         parser.add_argument('--subset_selection_nmax','-y',default=None,type=int,help='Number of frames to select in subset from input trajectory')
         parser.add_argument('--subset_selection_min_spacing','-g',default=1,type=int,help='Minimum frame spacing for selecting subset from input trajectory')
         parser.add_argument('--subset_selection_bias_beta','-a',default=20,type=int,help='Effective inverse temperature 1/kBT (in eV-1) for bias on U trajectories')
-        parser.add_argument('--subset_selection_stde_thresh','-h',default=0.02,type=float,help='Threshold committee energy standard deviation per atom for trajectory truncation')
+        parser.add_argument('--subset_selection_stde_thresh','-E',default=0.02,type=float,help='Threshold committee energy standard deviation per atom for trajectory truncation')
         parser.add_argument('--subset_selection_which_traj','-J',default=None,type=str,help='Which trajectory name to read/write subset selection to')
         parser.add_argument('--repeat_without_solute','-W',default=False,type=bool,help='Repeat calculation with no solute present')
         parser.add_argument('--geom_opt_kernel','-G',default=False,type=bool,help='Geometry Optimise the kernel region')
