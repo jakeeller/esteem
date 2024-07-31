@@ -110,10 +110,18 @@ meth=""
 truth="orca"
 train_calcs = ["MACEac0u","MACEac1u","MACEac2u"]
 seed="{solu}_{solv}"
-traj_suffix = truth
-md_suffix = "mldyn"
+traj_suffix = 'mlclus'
+md_suffix = "mldyn_recalc_carved"
 md_dir_suffix = 'mldyn'
 rand_seed = {'a':123,'b':456,'c':789} #,'d':101112,'e':131415}
+clusters_task.repeat_without_solute = False
+clusters_task.radius = None
+clusters_task.subset_selection_nmax = 100
+clusters_task.subset_selection_min_spacing = 20
+clusters_task.subset_selection_bias_beta = 5000
+clusters_task.max_snapshots = 80
+clusters_task.min_snapshots = 0
+clusters_task.valid_snapshots = 20
 active_clusters_tasks = create_clusters_tasks(clusters_task,train_calcs=train_calcs,
                                               seed=seed,traj_suffix=traj_suffix,
                                               md_suffix=md_suffix,md_dir_suffix=md_dir_suffix,
@@ -150,10 +158,14 @@ mltraj_task.ntraj = len(rand_seed)
 mltraj_task.md_steps = 5
 mltraj_task.nequil = 200
 mltraj_task.nsnap = 2000
+from ase.units import fs
+mltraj_task.md_timestep = {'MD': 0.5*fs, 'EQ': 0.5*fs}
 mltraj_task.store_full_traj = False
 mltraj_task.carve_trajectory_radius = solv_rad[rads[0]]
 mltraj_task.carve_trajectory_max_atoms = clusters_task.max_atoms
 mltraj_task.recalculate_carved_traj = True
+mltraj_task.continuation = True
+mltraj_task.ref_mol_dir = f'{{target}}_{solutes_task.func}'
 all_mltraj_tasks = create_mltraj_tasks(mltraj_task,train_calcs=train_calcs,targets=targets,
                     rand_seed=rand_seed,meth="",traj_suffix='mldyn',
                     md_wrapper=mltraj_task.wrapper,snap_wrapper=mltraj_task.snap_wrapper,
@@ -201,6 +213,9 @@ spectra_task.files = None
 spectra_task.exc_suffix = f'solvR{rads[0]}'
 spectra_task.trajectory = [[f"{{solu}}_{{solv}}_gs_A_orca.traj",f"{{solu}}_{{solv}}_es1_A_orca.traj"]]
 all_spectra_tasks[spec_method] = deepcopy(spectra_task)
+
+# Add active learning spectra tasks (vertical excitations)
+all_spectra_tasks.update(create_spectra_tasks(spectra_task,train_calcs,targets,rand_seed,meth,len(rand_seed)))
 
 # Invoke main driver
 drivers.main(all_solutes,all_solvents,
