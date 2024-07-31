@@ -631,7 +631,7 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
                     frame_targ.calc.results["energy"] = energy[i0:i1]
                     frame_targ.calc.results["forces"] = forces[i0:i1]
                     frame_targ.calc.results["dipole"] = dipole[i0:i1]
-                    outtraj[it].write(frame_targ)
+                    outtraj[tg].write(frame_targ)
             else:
                 if outtraj[targ] is not None:
                     if vibfreq_kernel:
