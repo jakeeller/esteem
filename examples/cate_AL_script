@@ -16,6 +16,7 @@ origdir=`pwd`
 M="u"
 # All states
 TALL=("gs" "es1" "es2")
+# Number of states
 NT=3
 TGS=("gs")
 # Base of name of script
@@ -24,13 +25,16 @@ scr=$scrbase".py"
 # Base solute_solvent seed
 SM="cate"
 SV="meth"
+# Seed name to be used by mltrain and mltest (solvent-specific)
 SA="all_"$SV
-# All the seeds we loop over
+# All the seeds we loop over for mltraj, mlclus
 SALL=($SM"_"$SV $SV"_"$SV)
+# Number of seeds
 NS=2
-# Trajectory characters, Q=Validation Set, U=Training Set
-UALL=("Q" "U")
+# Trajectory characters for initial traj, A=Training Set, B=Validation Set
 AALL=("B" "A")
+# Trajectory characters for mltraj, Q=Validation Set, U=Training Set
+UALL=("Q" "U")
 # Number of generations
 G=2
 # Number of Calculators
@@ -276,4 +280,7 @@ do
       sbatch --wait --array=$((X*10))-$((X*10+C-1)) $SA"_"$TT"_"$W"ac"$M"_mltest_sub" &
   done
   wait
+  if true; then
+     exit # quit for now, until previous bits verified to be working and this can be deactivated
+  fi
 done
