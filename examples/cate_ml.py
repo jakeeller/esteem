@@ -119,9 +119,9 @@ clusters_task.radius = None
 clusters_task.subset_selection_nmax = 100
 clusters_task.subset_selection_min_spacing = 20
 clusters_task.subset_selection_bias_beta = 5000
-clusters_task.max_snapshots = 80
+clusters_task.max_snapshots = 90
 clusters_task.min_snapshots = 0
-clusters_task.valid_snapshots = 20
+clusters_task.valid_snapshots = 10
 active_clusters_tasks = create_clusters_tasks(clusters_task,train_calcs=train_calcs,
                                               seed=seed,traj_suffix=traj_suffix,
                                               md_suffix=md_suffix,md_dir_suffix=md_dir_suffix,
@@ -139,7 +139,9 @@ traj_suffixes = [truth] # what trajectory suffixes to train on
 dir_suffixes = {truth: "solvR2.5"} # what directory suffixes to append to the seeds to find each trajectory suffix in
 ntraj = {(targets[0],truth):1,(targets[1],truth):0,(targets[2],truth):0} # how many trajectories of each suffix to expect, labelled A, B, C etc
 mltrain_task.wrapper.train_args['max_num_epochs'] = 500
-iter_dir_suffixes = ["mltraj"]
+mltrain_task.wrapper.train_args['swa'] = True
+mltrain_task.wrapper.train_args['start_swa'] = 300
+iter_dir_suffixes = ["mlclus"]
 mltrain_task.ntraj=270
 mltrain_task.geom_prefix = f'gs_{solutes_task.func}/is_opt_{{solv}}'
 all_mltrain_tasks = create_mltrain_tasks(mltrain_task,train_calcs=train_calcs,
@@ -147,7 +149,7 @@ all_mltrain_tasks = create_mltrain_tasks(mltrain_task,train_calcs=train_calcs,
                                      meth="",truth=truth,traj_suffixes=traj_suffixes,
                                      dir_suffixes=dir_suffixes,ntraj=ntraj,
                                      iter_dir_suffixes=iter_dir_suffixes,
-                                     delta_epochs=100,separate_valid=True)
+                                     delta_epochs=500,separate_valid=True)
 
 mltraj_task.wrapper = MACEWrapper()
 mltraj_task.snap_wrapper = MACEWrapper()

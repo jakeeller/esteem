@@ -149,15 +149,22 @@ class ClustersTask:
                           self.boxsize,self.task_id)
             print(f'# {len(list(traj_carved))} clusters carved from full snapshots with radius {self.radius}.')
         traj_carved_present = os.path.exists(traj_carved_file) and os.path.getsize(traj_carved_file)>0
-        if (not traj_carved_present) and self.radius is None and isinstance(self.md_suffix,list):
+        if self.radius is None and isinstance(self.md_suffix,list):
             # merging required
             input_traj_names = [f'{self.solute}{solvstr}_{mds}.traj' for mds in self.md_suffix]
-            print(f'# Merging {input_traj_names} and writing to {traj_carved_file}')
-            merge_traj(input_traj_names,traj_carved_file)
+            input_traj_lengths = [len(Trajectory(inptraj)) for inptraj in input_traj_names]
+            print(f'# Input trajectory lengths: {input_traj_lengths}')
+            if not traj_carved_present:
+                print(f'# Merging {input_traj_names} and writing to {traj_carved_file}')
+                merge_traj(input_traj_names,traj_carved_file)
+        else:
+            if traj_carved_present:
+                input_traj_lengths = [len(Trajectory(traj_carved_file))]
         traj_carved_present = os.path.exists(traj_carved_file) and os.path.getsize(traj_carved_file)>0
         if (not traj_carved_present) and self.radius is None:
             # No carving or merging required, just make link to input
             input_traj_name = f'{self.solute}{solvstr}_{self.md_suffix}.traj'
+            input_traj_lengths = [len(Trajectory(traj_carved_file))]
             print(f'# Looking for {traj_carved_file}')
             if not (os.path.isfile(f'{traj_carved_file}') or os.path.islink(f'{traj_carved_file}')):
                 print(f'# Creating link from {input_traj_name} to {traj_carved_file}')
@@ -178,7 +185,8 @@ class ClustersTask:
                                         method=self.subset_selection_method,
                                         min_spacing=self.subset_selection_min_spacing,
                                         bias_beta=self.subset_selection_bias_beta,
-                                        stde_thresh=self.subset_selection_stde_thresh)
+                                        stde_thresh=self.subset_selection_stde_thresh,
+                                        input_traj_lengths=input_traj_lengths)
             else:
                 print(f'# Loading existing subset trajectory: {traj_subset_file}')
                 delete_traj_carved_file = False
@@ -933,7 +941,8 @@ def get_ref_mol_energy(wrapper,ref_mol,solv,calc_params,ref_mol_xyz,ref_mol_dir,
     return ref_mol_energy, ref_mol_model
 
 def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',
-                            min_spacing=1,bias_beta=20.0,stde_thresh=0.02):
+                            min_spacing=1,bias_beta=20.0,stde_thresh=0.02,
+                            input_traj_lengths=None):
     from ase.io import Trajectory
     t=Trajectory(trajin_file)
     to=Trajectory(trajout_file,"w")
@@ -948,27 +957,35 @@ def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',
                   'U':f'(U) Biased by Energy Std Dev with beta={bias_beta}'}
     fullmethod = fullmethod[method]
     print(f'# Attempting to choose {nmax} frames out of {len(t)}, using method: {fullmethod} with min_spacing = {min_spacing}')
-    stde=np.zeros(len(t))
-    for i,f in enumerate(t):
-        stde[i]=np.std(f.get_potential_energy())/len(f)
-        if stde[i]>stde_thresh:
-            print(f'# Standard deviation per atom at frame {i:05} is: {stde[i]}')
-            print(f'# This is above the threshold                   : {stde_thresh}')
-            print(f'# Truncating trajectory thereafter.')
-            imax = i
-            break
-        else:
-            imax = i + 1
-    t = t[0:imax]
-    stde = stde[0:imax]
+    i = 0 # how far we have got in truncated list
+    k = 0 # how far we have got in original list
+    tc = [] # list of (truncated) frames
+    stde = [] # list of std of energies
+    for itraj,trajlen in enumerate(input_traj_lengths): # count trajectories and get length of each
+        k0 = k
+        for j in range(k0,k0+trajlen): # loop over entries
+            stde_j=np.std(t[k].get_potential_energy())/len(t[k])
+            if stde_j>stde_thresh:
+                print(f'# Standard deviation per atom at frame {j-k0:05} of trajectory {itraj} is: {stde_j}')
+                print(f'# This is above the threshold of {stde_thresh}')
+                print(f'# Truncating trajectory thereafter ({trajlen-j+k0} frames discarded).')
+                k = k0 + trajlen
+                break
+            else:
+                tc = tc + [t[k]]
+                stde.append(stde_j)
+                i = i + 1
+                k = k + 1
+    stde = np.array(stde)
+    print(f'# Final trajectory length: {len(tc)} {len(stde)}')
     # energy standard deviation-based sorting
     if method=='E':
         args=np.argsort(stde)
     # dipole-based sorting
     if method=='D':
-        stdd=np.zeros(len(t))
-        std_dip=np.zeros((len(t),3))
-        for i,f in enumerate(t):
+        stdd=np.zeros(len(tc))
+        std_dip=np.zeros((len(tc),3))
+        for i,f in enumerate(tc):
             std_dip[i]=np.std(f.get_dipole_moment(),axis=0)
             stdd[i] = np.sqrt(np.sum(std_dip[i]*std_dip[i]))
         args=np.argsort(stdd)
@@ -976,12 +993,12 @@ def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',
     if method=='U' or method=='R':
         from numpy.random import default_rng
         rng = default_rng()
-        p = np.exp(stde*bias_beta) if method=='U' else np.ones(len(t))
+        p = np.exp(stde*bias_beta) if method=='U' else np.ones(len(tc))
         p /= np.sum(p)
-        args = rng.choice(range(len(t)),size=len(t),replace=False,p=p)
+        args = rng.choice(range(len(tc)),size=len(tc),replace=False,p=p)
         args = args[::-1] if method=='U' else args
     framelist = []
-    for i in range(len(t)-1,-1,-1):
+    for i in range(len(tc)-1,-1,-1):
         if all([abs(args[i]-k) >= min_spacing for k in framelist]):
             #print(f'added frame {args[i]} as entry {len(framelist)}')
             framelist.append(args[i])
@@ -997,7 +1014,7 @@ def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',
     print(f'# Average standard deviation of E for chosen frames: {np.mean(stdelist)}')
     print(f'# Average standard deviation of E for all frames: {np.mean(stde)}')
     for i in range(nmax):
-        to.write(t[args[-i-1]])
+        to.write(tc[args[-i-1]])
 
 def sanity_check(trajname='', wrapper=None, calc_params = {},
                  ref_solu_dir='', ref_solu='', ref_solv_dir='', ref_solv=''):
