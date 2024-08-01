@@ -151,6 +151,7 @@ all_mltrain_tasks = create_mltrain_tasks(mltrain_task,train_calcs=train_calcs,
                                      iter_dir_suffixes=iter_dir_suffixes,
                                      delta_epochs=500,separate_valid=True)
 
+# Set up tasks for Trajectories with ML calculators
 mltraj_task.wrapper = MACEWrapper()
 mltraj_task.snap_wrapper = MACEWrapper()
 mltraj_task.geom_prefix = f'gs_{solutes_task.func}'
@@ -162,6 +163,7 @@ mltraj_task.nequil = 200
 mltraj_task.nsnap = 2000
 from ase.units import fs
 mltraj_task.md_timestep = {'MD': 0.5*fs, 'EQ': 0.5*fs}
+mltraj_task.md_friction = {'MD': 0.002, 'EQ': 0.05}  # For Langevin dynamics
 mltraj_task.store_full_traj = False
 mltraj_task.carve_trajectory_radius = solv_rad[rads[0]]
 mltraj_task.carve_trajectory_max_atoms = clusters_task.max_atoms

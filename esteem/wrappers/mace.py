@@ -89,7 +89,7 @@ class MACEWrapper():
             for targ in targets:
                 dirname = self.calc_filename(seed,targ,prefix=prefix,suffix=dir_suffix)
                 calcfn = self.calc_filename(seed,targ,prefix="",suffix=suff)
-                modelfile = f"{dirname}/{calcfn}_swa.model"
+                modelfile = f"{dirname}/{calcfn}_stagetwo.model"
                 if path.exists(modelfile):
                     checkpoint = modelfile
                 else:
