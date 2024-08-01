@@ -1,17 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
-
-
 """Defines a task to test a Machine Learning calculator by comparing its results
 to those of an existing trajectory or set of trajectories"""
-
-
-# # Main Routine
-
-# In[ ]:
-
 
 # Load essential modules
 import sys
@@ -247,11 +238,7 @@ class MLTestingTask:
 
 # # Comparison of results from trajectory to calculator
 
-# In[ ]:
-
-
 import numpy as np
-
 from esteem.trajectories import compare_traj_to_traj,atom_energy
     
 def compare_wrapper_to_traj(wrapper,calc_params,trajin,trajout_file):
@@ -301,8 +288,6 @@ def compare_wrapper_to_traj(wrapper,calc_params,trajin,trajout_file):
 
 
 # # Command-line driver
-
-# In[ ]:
 
 
 def get_parser():

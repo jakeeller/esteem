@@ -1303,7 +1303,7 @@ def mltest_driver(mltest,all_solutes,all_solvents):
             if t in mltest.ref_mol_seed_dict:
                 ref_mol_seed = mltest.ref_mol_seed_dict[t]
                 mltest.seed = sub_solu_solv_names(ref_mol_seed,mltest.calc_seed,all_solutes,all_solvents)
-                print(f'# Reference molecule seed set to {mltest.seed}')
+                print(f'\n# Reference molecule seed set to {mltest.seed}')
             mltest.which_trajs = traj_dict[t]
             plotfile = seed_state_str + '_' + mltest.calc_suffix + '_' + str(t) + '.png'
             mltest.plotfile = sub_solu_solv_names(plotfile,mltest.calc_seed,all_solutes,all_solvents)
