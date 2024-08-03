@@ -910,7 +910,7 @@ def dist_test(mol):
     else:
         return False
 
-def get_ref_mol_energy(wrapper,ref_mol,solv,calc_params,ref_mol_xyz,ref_mol_dir,silent=True):
+def get_ref_mol_energy(wrapper,ref_mol,solv,calc_params,ref_mol_xyz,ref_mol_dir,silent=True,dipole=False):
 
     from os import getcwd, chdir
     from ase.io import read
@@ -935,10 +935,13 @@ def get_ref_mol_energy(wrapper,ref_mol,solv,calc_params,ref_mol_xyz,ref_mol_dir,
                 if ref_mol_model.cell.volume == 0.0:
                     from ase.geometry import Cell
                     ref_mol_model.cell = Cell([[40,0,0],[0,40,0],[0,0,40]])
-    ref_mol_energy, = wrapper.singlepoint(ref_mol_model,
-                ref_mol_seed,calc_params,forces=False,dipole=False,readonly=True)
+    ref_mol_energy,ref_mol_dipole = wrapper.singlepoint(ref_mol_model,
+                ref_mol_seed,calc_params,forces=False,dipole=True,readonly=True)
     chdir(orig_dir)
-    return ref_mol_energy, ref_mol_model
+    if dipole:
+        return ref_mol_energy, ref_mol_dipole, ref_mol_model
+    else:
+        return ref_mol_energy, ref_mol_model
 
 def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',
                             min_spacing=1,bias_beta=20.0,stde_thresh=0.02,
@@ -1026,13 +1029,17 @@ def sanity_check(trajname='', wrapper=None, calc_params = {},
     from ase.io import Trajectory
     from esteem.trajectories import atom_energy
 
+    print(f'\n# Sanity checking results in {trajname}')
+
     # Read in Reference E, f, p
     ref_mol_xyz = f'{ref_solu_dir}/is_opt_{ref_solv}/{ref_solu}.xyz'
-    solu_energy,solu_model = get_ref_mol_energy(wrapper,ref_solu,ref_solv,calc_params,ref_mol_xyz,ref_solu_dir)
+    solu_energy,ref_solu_d,solu_model = get_ref_mol_energy(wrapper,ref_solu,
+            ref_solv,calc_params,ref_mol_xyz,ref_solu_dir,dipole=True)
     if isinstance(solu_energy,np.ndarray):
         solu_energy = np.mean(solu_energy)
     ref_mol_xyz = f'{ref_solv_dir}/is_opt_{ref_solv}/{ref_solv}.xyz'
-    solv_energy,solv_model = get_ref_mol_energy(wrapper,ref_solv,ref_solv,calc_params,ref_mol_xyz,ref_solv_dir)
+    solv_energy,ref_solv_d,solv_model = get_ref_mol_energy(wrapper,ref_solv,
+            ref_solv,calc_params,ref_mol_xyz,ref_solv_dir,dipole=True)
     if isinstance(solv_energy,np.ndarray):
         solv_energy = np.mean(solv_energy)
     ref_solu_d = np.linalg.norm(solu_model.get_dipole_moment())
@@ -1081,7 +1088,7 @@ def sanity_check(trajname='', wrapper=None, calc_params = {},
         if not read_success:
             print(f'{i:04} {targ:03} {n:03} (JOB EXECUTION FAILED)')
         # Empirical thresholds currently
-        elif de_per_solv>0.85 or de_per_solv<0.0 or dnorm>refdnorm*3 or fnorm>1:
+        elif de_per_solv>0.85 or de_per_solv<-0.20 or dnorm>refdnorm*3 or fnorm>1:
             fails.append(i)
             print(f'{i:04} {targ:03} {n:03} {e:16.8f} {eref:16.8f} {de_per_solv:16.8f} {fnorm:16.8f} {dnorm:16.8f} {refdnorm:16.8f}')
 
@@ -1090,7 +1097,9 @@ def sanity_check(trajname='', wrapper=None, calc_params = {},
     else:
         howmany = len(fails)
     print(f'# {howmany} frames in the trajectory were found to have possibly alarming energy, force or dipole values')
-    print('# Thresholds used: energy deviation < 0.85eV per solv molecule, force norm < 1eV/A/atom, dipole < 2 ref value)')
+    print('# Thresholds used: -0.2eV < energy deviation from reference < 0.85eV (per solvent molecule)')
+    print('#                  force norm < 1eV/A/atom')
+    print('#                  dipole norm < 3 x (reference dipole norm)')
     
     def energy_check():
         # Energy Check

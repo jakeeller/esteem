@@ -453,7 +453,7 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
     return new_test_tasks
 
 from esteem.tasks.spectra import SpectraTask
-def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,meth,ntraj,traj_suffix='specdyn',corr_traj=False):
+def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,meth,ntraj,traj_suffix='specdyn_recalc',corr_traj=False):
     """
     Returns a dictionary of Spectra tasks, based on an input prototype task supplied by
     the user, for all the required Spectra tasks for an Active Learning task.
@@ -480,10 +480,11 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
             rslist = list(rand_seed)
             for iw,w in enumerate(get_trajectory_list(ntraj)):
                 rs = rslist[iw]
-                all_trajs.append([f"{tdir}/{{solu}}_{{solv}}_{targstr}_{w}_{meth}{t}{rs}_{traj_suffix}_recalc.traj", 
-                                  f"{tdir}/{{solu}}_{{solv}}_{targstrp}_{w}_{meth}{t}{rs}_{traj_suffix}_recalc.traj"])
+                all_trajs.append([f"{tdir}/{{solu}}_{{solv}}_{targstr}_{w}_{meth}{t}{rs}_{traj_suffix}.traj", 
+                                  f"{tdir}/{{solu}}_{{solv}}_{targstrp}_{w}_{meth}{t}{rs}_{traj_suffix}.traj"])
                 if corr_traj:
-                    all_corr_trajs.append([f"{tdir}/{{solu}}_{{solv}}_{targstr}_{w}_{meth}{t}{rs}_nosolu.traj"])
+                    all_corr_trajs.append([f"{tdir}/{{solu}}_{{solv}}_{targstr}_{w}_{meth}{t}{rs}_{traj_suffix}_nosolu.traj",
+                                           f"{tdir}/{{solu}}_{{solv}}_{targstrp}_{w}_{meth}{t}{rs}_{traj_suffix}_nosolu.traj"])
             spectra_task.trajectory = all_trajs
             spectra_task.correction_trajectory = all_corr_trajs
             new_spectra_tasks[f'{targstr}_{meth}{t}_{traj_suffix}'] = deepcopy(spectra_task)
@@ -514,22 +515,28 @@ echo "X="$X "YP="$YP
     '''
 
     # Write job script for submission to HPC cluster
-    for task in ['mltrain','mltraj','mltest']:
+    for task in ['mltrain','mltraj','mltest','specdyn','spectra']:
         script_settings['target'] = '$T"_"$W"ac"$X$M$Y'
+        script_task = task
         if task=="mltraj":
             script_settings['target'] += '"x"$C'
+        if task=="specdyn":
+            script_settings['target'] += '_specdyn'
+            script_task = 'mltraj'
+        if task=="spectra":
+            script_settings['target'] = '$T"_"$W"ac"$X$M"_specdyn_recalc_carved"'
         script_settings['scriptname'] = '$scr'
         script_settings['execpath'] = '../'
         if task=='mltrain' or task=='mltest':
             script_settings['seed'] = '$SA'
             script_settings['jobname'] = f'{allseed}_{targstr}_{calc_suffix}_{task}'
-            script_settings['postfix'] = f'| tee -a $SA"_"{script_settings["target"]}"_"{task}$LOGSUFFIX.log'
+            script_settings['postfix'] = f'| tee -a $SA"_"{script_settings["target"]}"_{task}"$LOGSUFFIX.log'
         else:
             script_settings['jobname'] = f'{seed}_{targstr}_{calc_suffix}_{task}'
             script_settings['seed'] = '$SP'
-            script_settings['postfix'] = f'| tee -a $SP"_"{script_settings["target"]}"_"{task}$LOGSUFFIX.log'
+            script_settings['postfix'] = f'| tee -a $SP"_"{script_settings["target"]}"_{task}"$LOGSUFFIX.log'
         script_settings['num_threads'] = 1
-        make_sbatch(task=task,**script_settings)
+        make_sbatch(task=script_task,**script_settings)
 
     script_settings['declarations'] = store_decs
 

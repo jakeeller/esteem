@@ -174,6 +174,18 @@ all_mltraj_tasks = create_mltraj_tasks(mltraj_task,train_calcs=train_calcs,targe
                     rand_seed=rand_seed,meth="",traj_suffix='mldyn',
                     md_wrapper=mltraj_task.wrapper,snap_wrapper=mltraj_task.snap_wrapper,
                     two_targets=False)
+# Now add tasks for spectroscopy (more equilibration, longer runs, larger clusters, corrections)
+mltraj_task.carve_trajectory_radius = solv_rad[rads[1]]
+mltraj_task.carve_trajectory_max_atoms = 1000
+mltraj_task.corr_traj = True
+mltraj_task.md_steps = 2
+mltraj_task.nequil = 500
+mltraj_task.nsnap = 50000
+spectra_mltraj_tasks = create_mltraj_tasks(mltraj_task,train_calcs=train_calcs,targets=targets,
+                    rand_seed=rand_seed,meth="",traj_suffix='specdyn',
+                    md_wrapper=mltraj_task.wrapper,snap_wrapper=mltraj_task.snap_wrapper,
+                    two_targets=True)
+all_mltraj_tasks.update(spectra_mltraj_tasks)
 
 # Set up tasks for testing the ML calculators
 mltest_task.wrapper = MACEWrapper()
@@ -219,7 +231,8 @@ spectra_task.trajectory = [[f"{{solu}}_{{solv}}_gs_A_orca.traj",f"{{solu}}_{{sol
 all_spectra_tasks[spec_method] = deepcopy(spectra_task)
 
 # Add active learning spectra tasks (vertical excitations)
-all_spectra_tasks.update(create_spectra_tasks(spectra_task,train_calcs,targets,rand_seed,meth,len(rand_seed)))
+all_spectra_tasks.update(create_spectra_tasks(spectra_task,train_calcs,targets, 
+         rand_seed,meth,ntraj=len(rand_seed),traj_suffix='specdyn_recalc_carved',corr_traj=True))
 
 # Invoke main driver
 drivers.main(all_solutes,all_solvents,
