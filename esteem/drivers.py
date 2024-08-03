@@ -1253,6 +1253,7 @@ def mltest_driver(mltest,all_solutes,all_solvents):
             print(f'# Creating symlinks to trajectories')
             for traj in which_trajs:
                 if traj not in mltest.traj_links:
+                    print('traj not found in mltest.traj_links:',traj)
                     continue
 
                 # If there are multiple links that must be set up to assemble this trajectory,
@@ -1304,7 +1305,7 @@ def mltest_driver(mltest,all_solutes,all_solvents):
                 ref_mol_seed = mltest.ref_mol_seed_dict[t]
                 mltest.seed = sub_solu_solv_names(ref_mol_seed,mltest.calc_seed,all_solutes,all_solvents)
                 print(f'\n# Reference molecule seed set to {mltest.seed}')
-            mltest.which_trajs = traj_dict[t]
+            mltest.which_trajs = [traj_dict[t]]
             plotfile = seed_state_str + '_' + mltest.calc_suffix + '_' + str(t) + '.png'
             mltest.plotfile = sub_solu_solv_names(plotfile,mltest.calc_seed,all_solutes,all_solvents)
             print(f"# Plotfile set to {mltest.plotfile}")
@@ -1469,6 +1470,7 @@ def mltraj_cleanup(mltraj):
                                    path.getsize(traj_recalc_file)>0)
             all_traj_recalc_files = traj_recalc_file
             if mltraj.corr_traj:
+                traj_recalc_file_nosolu = f'{ct.solute}{solvstr}_{targstr(ct.which_target)}_{ct.which_traj}_{ct.output}_nosolu.traj'
                 all_traj_recalc_files = all_traj_recalc_files + f'and {traj_recalc_file_nosolu}'
                 all_results_present = (all_results_present and 
                                        (path.exists(traj_recalc_file_nosolu) and 

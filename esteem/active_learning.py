@@ -261,30 +261,30 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
                         traj_dest = f"{traj_link_dir}/{traj_link_file}"
                         if key=='train':
                             task.traj_links[gen_char+traj_char] = traj_dest
-                            new_trajs = [f'{gen_char+traj_char}']
+                            new_traj = f'{gen_char+traj_char}'
                             if isinstance(task.which_trajs,list):
-                                task.which_trajs += new_trajs
+                                task.which_trajs += [new_traj]
                             else:
-                                task.which_trajs.update({jtraj:jtraj for jtraj in new_trajs})
-                                task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
-                            #print(f'adding: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs}')
+                                task.which_trajs[new_traj] = new_traj
+                                task.ref_mol_seed_dict[new_traj] = seed
+                            #print(f'adding for {calc}: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs}')
                         elif key=='valid':
                             task.traj_links_valid[gen_char+traj_char] = traj_dest
-                            new_trajs = [f'{gen_char}{traj_char}']
+                            new_traj = f'{gen_char}{traj_char}'
                             if isinstance(task.which_trajs_valid,list):
-                                task.which_trajs_valid += new_trajs
+                                task.which_trajs_valid += [new_traj]
                             else:
-                                task.which_trajs_valid.update({jtraj:jtraj for jtraj in new_trajs})
-                                task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
-                            #print(f'adding: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_valid}')
+                                task.which_trajs_valid[new_traj] = new_traj
+                                task.ref_mol_seed_dict[new_traj] = seed
+                            #print(f'adding for {calc}: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_valid}')
                         elif key=='test':
                             task.traj_links_test[gen_char+traj_char] = traj_dest
-                            new_trajs = [f'{gen_char}{traj_char}']
+                            new_traj = f'{gen_char}{traj_char}'
                             if isinstance(task.which_trajs_test,list):
-                                task.which_trajs_test += new_trajs
+                                task.which_trajs_test += [new_traj]
                             else:
-                                task.which_trajs_test.update({jtraj:jtraj for jtraj in new_trajs})
-                                task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
+                                task.which_trajs_test[new_traj] = new_traj
+                                task.ref_mol_seed_dict[new_traj] = seed
                             #print(f'adding: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_test}')
                         offset = offset + 1
 
