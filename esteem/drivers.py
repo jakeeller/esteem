@@ -1463,21 +1463,24 @@ def mltraj_cleanup(mltraj):
             ct.target = mltraj.snap_calc_params['target']
             ct.nroots = mltraj.target
             ct.ref_mol_dir = mltraj.ref_mol_dir
-            traj_recalc_file = f'{ct.solute}{solvstr}_{targstr(ct.which_target)}_{ct.which_traj}_{ct.output}.traj'
             all_results_present = True
-            all_results_present = (all_results_present and 
-                                   path.exists(traj_recalc_file) and 
-                                   path.getsize(traj_recalc_file)>0)
-            all_traj_recalc_files = traj_recalc_file
-            if mltraj.corr_traj:
-                traj_recalc_file_nosolu = f'{ct.solute}{solvstr}_{targstr(ct.which_target)}_{ct.which_traj}_{ct.output}_nosolu.traj'
-                all_traj_recalc_files = all_traj_recalc_files + f'and {traj_recalc_file_nosolu}'
-                all_results_present = (all_results_present and 
-                                       (path.exists(traj_recalc_file_nosolu) and 
-                                        path.getsize(traj_recalc_file_nosolu)>0))
+            all_traj_recalc_files = {}
+            for targ in ct.target:
+                traj_recalc_file = f'{ct.solute}{solvstr}_{targstr(targ)}_{ct.which_traj}_{ct.output}.traj'
+                file_present = (path.exists(traj_recalc_file) and
+                                path.getsize(traj_recalc_file)>0)
+                all_traj_recalc_files[traj_recalc_file] = file_present
+                all_results_present = (all_results_present and file_present)
+                if mltraj.corr_traj:
+                    traj_recalc_file_nosolu = f'{ct.solute}{solvstr}_{targstr(targ)}_{ct.which_traj}_{ct.output}_nosolu.traj'
+                    file_present = (path.exists(traj_recalc_file_nosolu) and
+                                    path.getsize(traj_recalc_file_nosolu)>0)
+                    all_traj_recalc_files[traj_recalc_file_nosolu] = file_present
+                    all_results_present = (all_results_present and file_present)
             if all_results_present:
-                print(f'# Skipping recalculating clusters in postprocessing - {all_traj_recalc_files} already present')
+                print(f'# Skipping recalculating clusters in postprocessing - {list(all_traj_recalc_files)} already present')
             else:
+                print(f'# Recalculating clusters - not all files present: {all_traj_recalc_files}')
                 ct.run()
         if mltraj.store_full_traj:
             # Remove equilibration trajectory data

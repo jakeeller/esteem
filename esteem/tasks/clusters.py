@@ -1042,8 +1042,6 @@ def sanity_check(trajname='', wrapper=None, calc_params = {},
             ref_solv,calc_params,ref_mol_xyz,ref_solv_dir,dipole=True)
     if isinstance(solv_energy,np.ndarray):
         solv_energy = np.mean(solv_energy)
-    ref_solu_d = np.linalg.norm(solu_model.get_dipole_moment())
-    ref_solv_d = np.linalg.norm(solv_model.get_dipole_moment())
     print('# Solute reference energy, dipole: ',solu_energy,ref_solu_d)
     print('# Solvent reference energy, dipole: ',solv_energy,ref_solv_d)
 
