@@ -937,6 +937,8 @@ def get_ref_mol_energy(wrapper,ref_mol,solv,calc_params,ref_mol_xyz,ref_mol_dir,
                     ref_mol_model.cell = Cell([[40,0,0],[0,40,0],[0,0,40]])
     ref_mol_energy,ref_mol_dipole = wrapper.singlepoint(ref_mol_model,
                 ref_mol_seed,calc_params,forces=False,dipole=True,readonly=True)
+    print('ref_mol_energy=',ref_mol_energy)
+    print('ref_mol_dipole=',ref_mol_dipole)
     chdir(orig_dir)
     if dipole:
         return ref_mol_energy, ref_mol_dipole, ref_mol_model

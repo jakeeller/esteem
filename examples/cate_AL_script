@@ -291,10 +291,10 @@ done
 if true; then
   X=$G
   for SP in ${SALL[@]}; do # loop over seeds
+      if [ $SP == ${SALL[NS-1]}  ]; then continue; fi # skip solvent
       echo Spectroscopy Trajectories for Generation $X for $SP
       for TT in ${TALL[@]}; do # loop over targets
-	  if [ $SP == ${SALL[NS-1]}  ]; then continue; fi # skip solvent
-	  cd $SP"_"$TT"_"$W"ac_mldyn"
+          cd $SP"_"$TT"_"$W"ac_mldyn"
           # submit a mltraj job for each random seed
           sbatch --wait --array=$((X*10))-$((X*10+C-1)) $SP"_"$TT"_"$W"ac"$M"_specdyn_sub" &
 	  cd $origdir
@@ -306,14 +306,16 @@ fi
 if true; then
   X=$G
   for SP in ${SALL[@]}; do # loop over seeds
+      if [ $SP == ${SALL[NS-1]}  ]; then continue; fi # skip solvent
       echo Spectroscopy Trajectories for Generation $X for $SP
       for TT in ${TALL[@]}; do # loop over targets
-	  if [ $SP == ${SALL[NS-1]}  ]; then continue; fi # skip solvent
-	  cd $SP"_"$TT"_"$W"ac_mldyn"
+          cd $SP"_"$TT"_"$W"ac_mldyn"
           # submit a mltraj job for each random seed
-          sbatch --wait --array=$((X*10))-$((X*10+C-1)) $SP"_"$TT"_"$W"ac"$M"_spectra_sub" &
+          sbatch --wait --array=$((X*10)) $SP"_"$TT"_"$W"ac"$M"_spectra_sub" &
 	  cd $origdir
       done
   done
   wait
 fi
+
+echo Job Complete

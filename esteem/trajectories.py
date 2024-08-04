@@ -680,7 +680,7 @@ def formatted_output(iout,targ,natoms,pos,energy,forces,dipole,calc_forces,calc_
     if isinstance(targ,list):
         energy_str = ''
         for itarg,tg in enumerate(targ):
-            energy_str += f'{energy[itarg]:14.6f}'
+            energy_str += f'{energy[itarg]:16.8f}'
     else:
         if isinstance(energy,np.ndarray):
             energy = np.mean(energy)

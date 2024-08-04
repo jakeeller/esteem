@@ -474,7 +474,7 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
                 spectra_task.wrapper.task = spectra_task.mode.upper()
                 spectra_task.wrapper.rootname = f'{{solu}}_{{solv}}_{targstr}_spec'
                 spectra_task.wrapper.input_filename = f'{{solu}}_{{solv}}_{targstr}_spec_input'
-            spectra_task.exc_suffix = f'{targstr}_{meth}{pref(t)}_mldyn'
+            spectra_task.exc_suffix = f'{targstr}_{meth}{t}_mldyn'
             spectra_task.output = f'{{solu}}_{{solv}}_{spectra_task.exc_suffix}_spectrum.png'
             tdir = '.'
             rslist = list(rand_seed)
