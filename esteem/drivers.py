@@ -1409,6 +1409,13 @@ def mltraj_driver(mltraj,all_solutes,all_solvents,cleanup_only=False,setup_only=
             else:
                 print(f'# Geometry {geomfile_in} not found to copy')
 
+    # Retrieve solute-specific constraint from dictionary if needed
+    if isinstance(task.constraints,dict):
+        if solute in task.constraints:
+            task.constraints = task.constraints[solutes]
+        else:
+            raise Exception(f"task.constraints is a dictionary but contains no entry for solute '{solute}'")
+
     # Set default value of calc_seed if not otherwise set
     if mltraj.calc_seed is None:
         mltraj.calc_seed = mltraj.seed

@@ -400,6 +400,9 @@ def find_initial_geometry(seed,geom_opt_func=None,calc_params={},which_traj=None
         seed_state_str = f"{seed}_{targstr(targ)}"
     else: 
         seed_state_str = seed
+    rand_seed = which_traj
+    if 'calc_suffix' in calc_params:
+        rand_seed += calc_params['calc_suffix']
 
     xyzfile_opt = seed_state_str+'.xyz'
     model_init = None
@@ -417,9 +420,9 @@ def find_initial_geometry(seed,geom_opt_func=None,calc_params={},which_traj=None
                 i = traj_list.index(which_traj)
                 print(f'# MD starting positions taken from snapshot {i} based on traj index {i} of {ntraj}==length')
             else:
-                random.seed(which_traj)
+                random.seed(rand_seed)
                 i = random.randrange(len(traj))
-                print(f'# MD starting positions taken from snapshot {i} based on random seed {which_traj}')
+                print(f'# MD starting positions taken from snapshot {i} based on random seed {rand_seed}')
             model_init = traj[i]
             optimised = True
         except:
