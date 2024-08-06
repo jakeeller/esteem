@@ -506,8 +506,10 @@ def solvate_driver(all_solutes,all_solvents,seed,task,make_sbatch=None):
             md_geom_prefix = task.md_geom_prefix
             if solvent is not None:
                 md_geom_prefix = md_geom_prefix + '/is_opt_{solv}'
+                seed='{solute}_{solvent}'
             else:
                 md_geom_prefix = md_geom_prefix + '/opt'
+                seed='{solute}'
             md_geom_prefix = sub_solu_solv_names(md_geom_prefix,f'{solute}_{solvent}',
                                                  all_solutes,all_solvents)
             # Copy in optimised geometry of solute in implicit solvent
@@ -559,10 +561,6 @@ def solvate_driver(all_solutes,all_solvents,seed,task,make_sbatch=None):
 
 
 # # Run Clusters script on MD snapshots to extract region near solute
-
-# In[ ]:
-
-
 from shutil import copyfile
 import itertools
 from os import path,chdir,makedirs,getcwd,symlink
