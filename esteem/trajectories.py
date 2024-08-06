@@ -735,20 +735,42 @@ def get_trajectory_list(ntraj):
     return (list(string.ascii_uppercase)+extras)[0:ntraj]
 
 # Merge trajectories (if generated separately)
-def merge_traj(trajnames,trajfile):
+def merge_traj(trajnames,trajfile,trajfile_valid=None,valid_fraction=0.0,split_seed=123):
     """
     Merges a list of trajectories supplied as a list of filenames,
     and writes the result to another trajectory supplied as a filename
     """
+    assert 0.0 <= valid_fraction < 1.0
 
     fulltraj = Trajectory(trajfile,'w')
+    if trajfile_valid is not None:
+        fulltraj_valid = Trajectory(trajfile_valid,'w')
 
     for tr in trajnames:
         read_traj = Trajectory(tr)
-        for frames in read_traj:
-            fulltraj.write(frames)
+        size = len(read_traj)
+        indices = list(range(size))
+        train_size = size
+        if valid_fraction > 0.0:
+            train_size = size - int(valid_fraction * size)
+            valid_size = int(valid_fraction * size)
+            seed = str(split_seed) + tr
+            print(seed)
+            int_seed = abs(hash(seed))
+            rng = np.random.default_rng(int_seed)
+            rng.shuffle(indices)
+            print(f"# {size} frames of {tr} to be split into {train_size} training and {valid_size} validation using seed {int_seed}")
 
+        for i in indices[:train_size]:
+            fulltraj.write(read_traj[i])
+        for i in indices[train_size:]:
+            fulltraj_valid.write(read_traj[i])
     print("# Merged ",len(fulltraj)," frames: trajectory written to ",trajfile)
+    fulltraj.close()
+    if trajfile_valid is not None:
+        print("# Merged ",len(fulltraj_valid)," frames: trajectory written to ",trajfile_valid)
+        fulltraj_valid.close()
+
 
 # Difference of two trajectories (generated separately)
 def diff_traj(itrajfile,jtrajfile,outtrajfile):

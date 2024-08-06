@@ -338,6 +338,7 @@ def create_mltrain_tasks(train_task:MLTrainingTask,train_calcs,seeds,targets,ran
             # Save this calculator to the list for each seed
             for rs in rand_seed:
                 # Seed-specific info
+                train_task.rand_seed = rand_seed[rs]
                 train_task.wrapper.train_args['seed'] = rand_seed[rs] # MACE specific
                 train_task.calc_suffix = f"{meth}{t}{rs}"
                 new_mltrain_tasks[targets[target]+'_'+train_task.calc_suffix] = deepcopy(train_task)
