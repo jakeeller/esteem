@@ -78,7 +78,7 @@ class MLTrainingTask:
             separate_valid = True
         else:
             separate_valid = False
-            valid_fraction = 0.1
+            valid_fraction = task.valid_fraction
             if hasattr(self,'rand_seed'):
                 rand_seed = self.rand_seed
             else:
@@ -160,6 +160,7 @@ class MLTrainingTask:
         parser.add_argument('--traj_links_valid','-V',default=None,type=dict,help='Targets for links to create for validation trajectories')
         parser.add_argument('--traj_links_test','-U',default=None,type=dict,help='Targets for links to create for testing trajectories')
         parser.add_argument('--cutoff','-d',default=6.5,type=float,help='Gaussian descriptor cutoff')
+        parser.add_argument('--valid_fraction','-d',default=0.1,type=float,help='Fraction of trajectory to use as validation data')
         '''
         parser.add_argument('--cores','-c',default=1,type=int,help='Number of parallel cores on which to run the training')
         parser.add_argument('--steps','-A',default=None,type=int,help='Annealer steps')
