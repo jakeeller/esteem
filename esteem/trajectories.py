@@ -480,7 +480,7 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
     input_traj = f"{seed}_{targstr(input_target)}_{input_traj_label}_{input_suffix}.traj"
     if not path.isfile(input_traj):
         raise Exception("Input trajectory not found: ",input_traj)
-    print(f"# Reading from input trajectory {input_traj}")
+    print(f"# Reading from input trajectory {input_traj} {input_traj_range}")
     intraj = Trajectory(input_traj)
 
     if isinstance(target,list):

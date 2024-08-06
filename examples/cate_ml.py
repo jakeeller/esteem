@@ -99,6 +99,7 @@ for rad in rads:
     clusters_task.subset_selection_method = "R"
     clusters_task.subset_selection_nmax = 100
     clusters_task.radius = solv_rad[rad]
+    traj = 'A'
     clusters_task.which_traj = traj
     suffix = f'solvR{rad}'
     clusters_task.exc_suffix = f"{suffix}"
@@ -122,7 +123,7 @@ active_clusters_tasks = create_clusters_tasks(clusters_task,train_calcs=train_ca
                                               seed=seed,traj_suffix=traj_suffix,
                                               md_suffix=md_suffix,md_dir_suffix=md_dir_suffix,
                                               targets=targets,rand_seed=rand_seed,
-                                              meth="",truth="orca")
+                                              meth="",truth="orca",separate_valid=False)
 all_clusters_tasks.update(active_clusters_tasks)
 
 # Set up tasks for ML Training

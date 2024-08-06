@@ -50,7 +50,8 @@ def suff(calc):
 from esteem.tasks.clusters import ClustersTask
 
 def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suffix,
-                          md_dir_suffix,targets,rand_seed,meth,truth):
+                          md_dir_suffix,targets,rand_seed,meth,truth,
+                          separate_valid=False):
     """
     Returns a dictionary of clusters tasks, based on an input prototype task supplied by
     the user, for all the required clusters tasks for an Active Learning task.
@@ -63,10 +64,11 @@ def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suff
     init_min_snapshots = task.min_snapshots
     init_max_snapshots = task.max_snapshots
     # It can be overridden by setting valid_snapshots
-    if task.valid_snapshots is not None:
-        valid_snapshots = task.valid_snapshots
-    else:
-        valid_snapshots = task.max_snapshots - task.min_snapshots
+    if separate_valid:
+        if task.valid_snapshots is not None:
+            valid_snapshots = task.valid_snapshots
+        else:
+            valid_snapshots = task.max_snapshots - task.min_snapshots
     # Define empty dictionary for new tasks
     new_clusters_tasks = {}
     # Loop over calculators and trajectory targets
@@ -82,7 +84,8 @@ def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suff
                 task.selected_suffix = f'selected_{suff(tp)}'
                 task.script_settings['logdir'] = task.output
                 wlist = [get_traj_from_calc(tp)]
-                wlist += ['Q']
+                if separate_valid:
+                    wlist += ['Q']
                 wplist = get_trajectory_list(len(rand_seed))
                 rslist = list(rand_seed)
                 for iw,w in enumerate(wlist):
@@ -92,7 +95,7 @@ def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suff
                         task.max_snapshots = init_max_snapshots
                         task.subset_selection_method = get_ssm_from_traj(w)
                         task.subset_selection_which_traj = w
-                    else: # for the validation/testing trajectories, offset the snapshots
+                    elif separate_valid: # for the validation/testing trajectories, offset the snapshots
                         task.min_snapshots = task.max_snapshots
                         task.max_snapshots = task.max_snapshots + valid_snapshots
                     task.md_prefix = f'{seed}_{targets[target]}_{meth}{pref(tp)}_{md_dir_suffix}'

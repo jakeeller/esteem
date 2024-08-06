@@ -123,9 +123,21 @@ class ClustersTask:
         # Check if the carved trajectory already exists
         which_targstr = targstr(self.which_target)
         solvstr = f'_{self.solvent}' if self.solvent is not None else ''
+        if self.subset_selection_method is not None:
+            input_suffix = f'{self.selected_suffix}'
         traj_carved_file = f'{self.solute}{solvstr}_{which_targstr}_{self.which_traj}_{input_suffix}.traj'
+        if self.subset_selection_method is not None:
+            # If we did not find a pre-selected subset, reset input to carved suffix and check again
+            if not os.path.exists(traj_carved_file):
+                if self.task_id is not None:
+                    print(f'# Error: {traj_carved_file} not found')
+                    raise Exception('For a subset trajectory, clusters_setup must be run before individual task_ids.')
+                print(f'# Subset trajectory {traj_carved_file} not found. Trying to load carved trajectory.')
+                input_suffix = f'{self.carved_suffix}'
+                traj_carved_file = f'{self.solute}{solvstr}_{which_targstr}_{self.which_traj}_{input_suffix}.traj'
         # In the case where we have carved a trajectory already, skip the rest
-        if os.path.exists(traj_carved_file) and self.radius is not None:
+        if (os.path.exists(traj_carved_file) and self.radius is not None 
+                and self.subset_selection_method is None):
             if os.path.getsize(traj_carved_file)>0:
                 input_traj = self.get_input_traj(self.solute,self.solvent,self.md_suffix)
                 traj_max = min(len(input_traj),self.max_snapshots)
@@ -170,7 +182,7 @@ class ClustersTask:
                 print(f'# Creating link from {input_traj_name} to {traj_carved_file}')
                 os.symlink(input_traj_name,traj_carved_file)
         # Case where a subset is to be selected
-        if self.subset_selection_method is not None and self.radius is None:
+        if self.subset_selection_method is not None: # and self.radius is None:
             input_suffix = self.selected_suffix
             if self.subset_selection_which_traj is not None:
                 subset_selection_traj = self.subset_selection_which_traj
@@ -200,7 +212,7 @@ class ClustersTask:
             traj_carved = list(enumerate(input_traj[traj_min:traj_max]))
             if self.task_id is not None:
                 traj_carved = [traj_carved[self.task_id]]
-            print(f'# {len(list(traj_carved))} frames loaded')
+            print(f'# {len(list(traj_carved))} frames loaded from {traj_carved_file}[{traj_min}:{traj_max}]')
             
         writeonly = (self.output=="nw") or (self.output=="dat") or (self.output=="xyz")
         if self.calc_forces:
@@ -249,8 +261,12 @@ class ClustersTask:
                     output_traj_offset = -self.min_snapshots
             else:
                 # If we are processing just one carved frame, set range to 1 and offset to task_id
-                input_traj_range = range(0,1)
-                output_traj_offset = self.task_id
+                if self.subset_selection_method is None:
+                    input_traj_range = range(0,1)
+                    output_traj_offset = self.task_id
+                else:
+                    input_traj_range = range(self.task_id,self.task_id+1)
+                    output_traj_offset = 0
                 # If we are processing one frame directly from source, set range to task_id and offset to 0
                 if self.radius is None:
                     input_traj_range = range(self.task_id,self.task_id+1)
@@ -951,9 +967,10 @@ def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',
     from ase.io import Trajectory
     t=Trajectory(trajin_file)
     to=Trajectory(trajout_file,"w")
-    t0_en = t[0].get_potential_energy()
-    if not isinstance(t0_en,np.ndarray):
-        raise Exception(f"# Expected a trajectory with energies of type np.ndarray, got {type(t0_en)}")
+    if method!="R":
+        t0_en = t[0].get_potential_energy()
+        if not isinstance(t0_en,np.ndarray):
+            raise Exception(f"# Expected a trajectory with energies of type np.ndarray, got {type(t0_en)}")
     if nmax > len(t):
         raise Exception(f"# Not enough frames to write {nmax}: found {len(t)} in trajectory")
     fullmethod = {'R':'(R) Random',
@@ -969,7 +986,10 @@ def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',
     for itraj,trajlen in enumerate(input_traj_lengths): # count trajectories and get length of each
         k0 = k
         for j in range(k0,k0+trajlen): # loop over entries
-            stde_j=np.std(t[k].get_potential_energy())/len(t[k])
+            if method!='R':
+                stde_j=np.std(t[k].get_potential_energy())/len(t[k])
+            else:
+                stde_j = 0.0
             if stde_j>stde_thresh:
                 print(f'# Standard deviation per atom at frame {j-k0:05} of trajectory {itraj} is: {stde_j}')
                 print(f'# This is above the threshold of {stde_thresh}')
@@ -982,7 +1002,7 @@ def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',
                 i = i + 1
                 k = k + 1
     stde = np.array(stde)
-    print(f'# Final trajectory length: {len(tc)} {len(stde)}')
+    print(f'# Final input trajectory length: {len(tc)} {len(stde)}')
     # energy standard deviation-based sorting
     if method=='E':
         args=np.argsort(stde)
@@ -1015,9 +1035,10 @@ def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',
     print(f'# Chosen frames:\n# {framelist}')
     print(f'# Chosen frames sorted ascending:\n# {sorted(framelist)}')
     stdelist = stde[framelist]
-    print(f'# Standard deviations of E for chosen frames:\n# {stdelist}')
-    print(f'# Average standard deviation of E for chosen frames: {np.mean(stdelist)}')
-    print(f'# Average standard deviation of E for all frames: {np.mean(stde)}')
+    if method!='R':
+        print(f'# Standard deviations of E for chosen frames:\n# {stdelist}')
+        print(f'# Average standard deviation of E for chosen frames: {np.mean(stdelist)}')
+        print(f'# Average standard deviation of E for all frames: {np.mean(stde)}')
     for i in range(nmax):
         to.write(tc[args[-i-1]])
 
@@ -1079,7 +1100,7 @@ def sanity_check(trajname='', wrapper=None, calc_params = {},
                 de_per_solv = e-eref
             dnorm = np.linalg.norm(d)
             fnorm = np.linalg.norm(f)/len(frame)
-            refdnorm = ref_solv_d*n+ref_solu_d
+            refdnorm = np.linalg.norm(ref_solv_d)*n+np.linalg.norm(ref_solu_d)
         except:
             de_per_solv = 0
             dnorm = 0
