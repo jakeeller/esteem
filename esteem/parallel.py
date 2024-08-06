@@ -120,7 +120,7 @@ avon_1node_100['declarations'] += f'TASKS_PER_PROG={parallel_tasks_per_prog}\n' 
 avon_1node_100['command'] =  gnu_parallel_command
 
 sulis_tf = '\nmodule purge; module load GCC/10.3.0 CUDA/11.3.1 OpenMPI/4.1.1 TensorFlow/2.6.0-CUDA-11.3.1\n\n'
-sulis_pyt = '\nmodule purge; module load GCC/11.3.0 CUDA/11.7.0 OpenMPI/4.1.4 PyTorch/1.12.1-CUDA-11.7.0 matplotlib\n\n'
+sulis_pyt = '\nmodule purge; module load GCC/11.3.0 CUDA/11.7.0 OpenMPI/4.1.4 PyTorch/1.12.1-CUDA-11.7.0 matplotlib netCDF\n\n'
 
 sulis_1node =   {'account': 'su007-ndmh',
                  'partition': 'compute',
