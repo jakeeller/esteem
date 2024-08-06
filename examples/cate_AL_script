@@ -31,10 +31,10 @@ SA="all_"$SV
 SALL=($SM"_"$SV $SV"_"$SV)
 # Number of seeds
 NS=2
-# Trajectory characters for initial traj, A=Training Set, B=Validation Set
-AALL=("B" "A")
-# Trajectory characters for mltraj, Q=Validation Set, U=Training Set
-UALL=("Q" "U")
+# Trajectory characters for initial traj, A=Initial Training Set, B=Validation Set
+AALL=("A")
+# Trajectory characters for mltraj, U=U-picked AL Training Set
+UALL=("U")
 # Number of generations
 G=2
 # Number of Calculators
@@ -42,11 +42,11 @@ C=3
 # Number of Configs to run DFT on per cluster job
 SMAX=5
 # Number of new cluster training configs per generation
-NC=90
-# Number of new cluster validation configs per generation
-NCQ=10
+NC=100
 # Method
 W="MACE"
+# Atoms method
+AM="orca"
 # Initial clusters name
 IC="solvR2.5"
 # MD name
@@ -128,9 +128,8 @@ if true; then
 	  if [ $SP == ${SALL[NS-1]} ] && [ $TT != ${TALL[0]} ]; then continue; fi
           # move to clusters directory
           cd $SP"_"$IC
-	  # submit the cluster jobs for B and A
-          sbatch --wait --array=0-$((NCQ-1)):$SMAX $SP"_"$IC"_"${AALL[0]}"_sub" &
-          sbatch --wait --array=0-$((NC-1)):$SMAX $SP"_"$IC"_"${AALL[1]}"_sub" &
+	  # submit the cluster jobs for A
+          sbatch --wait --array=0-$((NC-1)):$SMAX $SP"_"$IC"_"${AALL[0]}"_sub" &
 	  cd $origdir
       done
   done
@@ -150,9 +149,19 @@ if true; then
   done
 fi
 
+if false; then
+   exit # quit for now, until previous bits verified to be working and deactivated
+fi
+
 # write AL scripts
 if true; then
    python $mkscr
+fi
+
+# do atoms calculation
+if false; then
+   python $scr atoms ${SALL[0]} $AM
+   mv ${SALL[0]}"_atoms_"$AM".traj" $SA"_atoms_"$AM".traj"
 fi
 
 # setup mltrain and mltest folders
@@ -179,8 +188,9 @@ if true; then
 	  if [ $SP == ${SALL[NS-1]} ] && [ $TT == ${TALL[NT-1]} ]; then continue; fi
 	  X=0 
           python $scr mltraj_setup $SP $TT"_"$W"ac"$X$M"ax3" | tee -a $SP"_"$TT"_"$W"ac"$X$M"a_mltraj_setup.log"
-	  # move script and setup log into folder
+	  # move scripts and setup log into folder
 	  mv $SP"_"$TT"_"$W"ac"$M"_mltraj_sub" $SP"_"$TT"_"$W"ac"$X$M"a_mltraj_setup.log" $SP"_"$TT"_"$W"ac_mldyn"
+	  mv $SP"_"$TT"_"$W"ac"$M"_specdyn_sub" $SP"_"$TT"_"$W"ac"$M"_spectra_sub" $SP"_"$TT"_"$W"ac_mldyn"
       done
   done
 fi
@@ -254,9 +264,8 @@ do
 	  if [ $SP == ${SALL[NS-1]} ] && [ $TT != ${TALL[0]} ]; then continue; fi
           # move to clusters directory
           cd $SP"_"$TT"_"$W"ac_mlclus"
-	  # submit the cluster jobs for U and Q
-          sbatch --wait --array=0-$((NCQ-1)):$SMAX $SP"_"$TT"_"$W"ac"$X$M"_"${UALL[0]}"_sub" &
-          sbatch --wait --array=0-$((NC-1)):$SMAX $SP"_"$TT"_"$W"ac"$X$M"_"${UALL[1]}"_sub" &
+	  # submit the cluster jobs for U
+          sbatch --wait --array=0-$((NC-1)):$SMAX $SP"_"$TT"_"$W"ac"$X$M"_"${UALL[0]}"_sub" &
 	  cd $origdir
       done
   done
