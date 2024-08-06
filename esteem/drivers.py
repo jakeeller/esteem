@@ -924,7 +924,7 @@ def atom_energies_driver(atomen):
     for i in atom_energies:
         ni = ref_mol_model.symbols.count(i)
         sum_ni_Ei += atom_energies[i]*ni
-    E_mol = ref_mol_energy[0]
+    E_mol = ref_mol_energy
 
     alpha = E_mol/(sum_ni_Ei)
     print(f'# Sum of atomic energies for reference model: {sum_ni_Ei} \nRescaling by: {alpha}')

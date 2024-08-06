@@ -146,7 +146,7 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
             for seed in seeds_list:
                 all_keys = get_keys(task)
                 targstr2 = targstr
-                if seed=='{solv}_{solv}' and targstr2=='es1':
+                if seed=='{solv}_{solv}' and targstr2!='gs':
                     targstr2 = 'gs'
                 for ikey,key in enumerate(all_keys):
                     all_traj = get_trajectory_list(passed[target1]+ntraj[targstr1,traj_suffix])
@@ -243,10 +243,10 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
                 # Loop over seeds
                 for seed in seeds:
                     # temporary hack - will need a better way to skip this
-                    if (seed=='{solv}_{solv}' and targstrp=='es1'):
+                    if (seed=='{solv}_{solv}' and targstrp!='gs'):
                         continue
                     targstr2 = targstr
-                    if seed=='{solv}_{solv}' and targstr2=='es1':
+                    if seed=='{solv}_{solv}' and targstr2!='gs':
                         targstr2 = 'gs'
                     all_keys = get_keys(task)
                     for ikey,key in enumerate(all_keys):
