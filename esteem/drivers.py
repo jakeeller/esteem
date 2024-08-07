@@ -1409,8 +1409,8 @@ def mltraj_driver(mltraj,all_solutes,all_solvents,cleanup_only=False,setup_only=
 
     # Retrieve solute-specific constraint from dictionary if needed
     if isinstance(mltraj.constraints,dict):
-        if solute in mltraj.constraints:
-            mltraj.constraints = mltraj.constraints[solutes]
+        if solu in mltraj.constraints:
+            mltraj.constraints = mltraj.constraints[solu]
         else:
             raise Exception(f"# Error: constraints is a dictionary but contains no entry for solute '{solute}'")
 

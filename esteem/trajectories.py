@@ -759,6 +759,8 @@ def merge_traj(trajnames,trajfile,trajfile_valid=None,valid_fraction=0.0,split_s
     Merges a list of trajectories supplied as a list of filenames,
     and writes the result to another trajectory supplied as a filename
     """
+    import hashlib
+
     assert 0.0 <= valid_fraction < 1.0
 
     fulltraj = Trajectory(trajfile,'w')
@@ -774,8 +776,8 @@ def merge_traj(trajnames,trajfile,trajfile_valid=None,valid_fraction=0.0,split_s
             train_size = size - int(valid_fraction * size)
             valid_size = int(valid_fraction * size)
             seed = str(split_seed) + tr
-            print(seed)
-            int_seed = abs(hash(seed))
+            int_seed = int(hashlib.sha1(seed.encode("utf-8")).hexdigest(), 16) % (10 ** 10)
+            print(f'Used string {seed} to generate seed {int_seed}')
             rng = np.random.default_rng(int_seed)
             rng.shuffle(indices)
             print(f"# {size} frames of {tr} to be split into {train_size} training and {valid_size} validation using seed {int_seed}")

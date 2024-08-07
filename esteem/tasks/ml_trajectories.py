@@ -134,6 +134,7 @@ class MLTrajTask:
                                        snap_wrapper=self.snap_wrapper if not self.recalculate_carved_traj else None,
                                        snap_calc_params=self.snap_calc_params if not self.recalculate_carved_traj else None,
                                        continuation=self.continuation,debugger=self.debugger)
+                self.continuation = True
                 output_trajfile = f"{self.seed}_{targstr(self.target)}_{traj_label}_{self.traj_suffix}.traj"
                 if os.path.exists(output_trajfile):
                     output_traj = Trajectory(output_trajfile)
