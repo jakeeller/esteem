@@ -149,6 +149,7 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
             model.center(10)
 
     # Run Equilibration MD
+    abort = False
     if not continuation:
         chdir(equil_dir)
         timestep = get_param(md_timestep,'EQ')
@@ -174,12 +175,20 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
             if debugger is not None:
                 debugger.check(model)
             report_outputs(model,step,targ,'EQ')
+            curr_temp = model.get_temperature()
+            if curr_temp>10*temp:
+                print(f'# Temperature {curr_temp} K exceeds 10x target ({temp} K), aborting Equilibration MD runs')
+                abort = True
+                break
 
         # Return to base directory
         chdir(origdir)
-        print("# Finished Equilibration MD runs")
+        if not abort:
+            print("# Finished Equilibration MD runs")
     else:
         print("# Skipping Equilibration MD runs")
+    if abort:
+        return
 
     outtraj = {}
     snaps_done = 0
@@ -278,13 +287,23 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
                  print("SP: ",step,i,targ,energy,model.positions[0])
             outtraj[targ].write(model)
             prev_targ = targ
+
+        # Check if the run has gone wild and should be aborted
+        curr_temp = model.get_temperature()
+        if curr_temp>10*temp:
+            print(f'# Temperature {curr_temp} K exceeds 10x target ({temp} K), aborting Snapshot MD runs')
+            abort = True
+            break
+
+        # Return to parent directory
         chdir(origdir)
 
     # Return to base directory and close trajectories
     chdir(origdir)
     for targ in all_targets:
         outtraj[targ].close()
-    print("# Finished Snapshot MD runs")
+    if not abort:
+        print("# Finished Snapshot MD runs")
 
 
 # Helper functions

@@ -63,66 +63,87 @@ class MLTrajTask:
 
         model = {}
         continuation_len = {}
-        for traj_label in which_trajs:
+        enough_data = {traj_label:False for traj_label in which_trajs}
+        offsets = {traj_label:'' for traj_label in which_trajs}
+        while not all(enough_data.values()):
+            for traj_label in which_trajs:
 
-            # Find (or relax) initial geometry
-            calc_params['calc_prefix'] = f'../{self.calc_prefix}'
+                # Find (or relax) initial geometry
+                calc_params['calc_prefix'] = f'../{self.calc_prefix}'
 
-            model[traj_label] = None
-            if self.continuation:
-                continuation_trajfile = f"{self.seed}_{targstr(self.target)}_{traj_label}_{self.traj_suffix}.traj"
-                if os.path.exists(continuation_trajfile):
-                    continuation_traj = Trajectory(continuation_trajfile)
-                    continuation_len[traj_label] = len(continuation_traj)
-                    model[traj_label] = continuation_traj[-1]
-                    print(f'# Continuation file {continuation_trajfile} found, containing {continuation_len[traj_label]} snapshots. Continuing.')
+                model[traj_label] = None
+                if self.continuation:
+                    continuation_trajfile = f"{self.seed}_{targstr(self.target)}_{traj_label}_{self.traj_suffix}.traj"
+                    if os.path.exists(continuation_trajfile):
+                        continuation_traj = Trajectory(continuation_trajfile)
+                        continuation_len[traj_label] = len(continuation_traj)
+                        model[traj_label] = continuation_traj[-1]
+                        # This model already blew up, so increase offset and load a new one
+                        if model[traj_label].get_temperature() > 10*self.temp:
+                            offsets[traj_label] += "A"
+                            model[traj_label] = None
+                            print(f'# Continuation file {continuation_trajfile} found, containing {continuation_len[traj_label]} snapshots. Abort was flagged, restarting.')
+                        else:
+                            print(f'# Continuation file {continuation_trajfile} found, containing {continuation_len[traj_label]} snapshots. Continuing.')
+                        continuation_traj.close()
+                    else:
+                        self.continuation = False
+                        continuation_len[traj_label] = 0
+                        print('# No continuation file found, initialising from scratch')
                 else:
-                    self.continuation = False
                     continuation_len[traj_label] = 0
-                    print('# No continuation file found, initialising from scratch')
-            else:
-                continuation_len[traj_label] = 0
 
-            if model[traj_label] is None:
-                model[traj_label] = find_initial_geometry(self.seed,self.wrapper.geom_opt,
-                                                      calc_params,traj_label)                
-            if self.constraints is not None:
-                from ase.constraints import FixBondLengths, Hookean, FixInternals
-                set_constraints = []
-                for c in self.constraints:
-                    if isinstance(c, FixBondLengths):
-                        bondlength = c.bondlengths[0]
-                        atoms = c.pairs[0]
-                        model[traj_label].set_distance(atoms[0],atoms[1],bondlength,fix=0)
-                        model[traj_label].set_constraint(c)
-                    if isinstance(c, Hookean):
-                        del model[traj_label].constraints
-                        set_constraints.append(c)
-                    if isinstance(c, FixInternals):
-                        set_constraints.append(c)
-                model[traj_label].set_constraint(set_constraints)
+                if model[traj_label] is None:
+                    offset_traj_label = traj_label + offsets[traj_label]
+                    model[traj_label] = find_initial_geometry(self.seed,self.wrapper.geom_opt,
+                                                          calc_params,offset_traj_label)
+                if self.constraints is not None:
+                    from ase.constraints import FixBondLengths, Hookean, FixInternals
+                    set_constraints = []
+                    for c in self.constraints:
+                        if isinstance(c, FixBondLengths):
+                            bondlength = c.bondlengths[0]
+                            atoms = c.pairs[0]
+                            model[traj_label].set_distance(atoms[0],atoms[1],bondlength,fix=0)
+                            model[traj_label].set_constraint(c)
+                        if isinstance(c, Hookean):
+                            del model[traj_label].constraints
+                            set_constraints.append(c)
+                        if isinstance(c, FixInternals):
+                            set_constraints.append(c)
+                    model[traj_label].set_constraint(set_constraints)
 
-        # Evaluate initial energies
-        for i in which_trajs:
-            if continuation_len[traj_label]>=self.nsnap:
-                continue
-            ep = self.wrapper.singlepoint(model[i],"test",calc_params)[0]
-            ek = model[i].get_kinetic_energy()
-            print(f'# Trajectory {i} initial potential energy = {ep-self.wrapper.atom_e}')
-            print(f'# Trajectory {i} initial   kinetic energy = {ek}')
+            # Evaluate initial energies
+            for i in which_trajs:
+                if continuation_len[traj_label]>=self.nsnap:
+                    continue
+                ep = self.wrapper.singlepoint(model[i],"test",calc_params)[0]
+                ek = model[i].get_kinetic_energy()
+                print(f'# Trajectory {i} initial potential energy = {ep-self.wrapper.atom_e}')
+                print(f'# Trajectory {i} initial   kinetic energy = {ek}')
 
-        # Current path will be two levels down from starting path in MD run, so adjust prefix
-        calc_params['calc_prefix'] = f'../../{self.calc_prefix}'
-        for traj_label in which_trajs:
-            # Pass in routine to actually run MD into generic Snapshot MD driver
-            generate_md_trajectory(model[traj_label],self.seed,self.target,traj_label,self.traj_suffix,
-                                   wrapper=self.wrapper,count_snaps=self.nsnap,count_equil=self.nequil,
-                                   md_steps=self.md_steps,md_timestep=self.md_timestep,
-                                   md_friction=self.md_friction,store_full_traj=self.store_full_traj,
-                                   temp=self.temp,calc_params=calc_params,dynamics=self.dynamics,
-                                   snap_wrapper=self.snap_wrapper if not self.recalculate_carved_traj else None,
-                                   snap_calc_params=self.snap_calc_params if not self.recalculate_carved_traj else None,
-                                   continuation=self.continuation,debugger=self.debugger)
+            # Current path will be two levels down from starting path in MD run, so adjust prefix
+            calc_params['calc_prefix'] = f'../../{self.calc_prefix}'
+            for traj_label in which_trajs:
+                # Pass in routine to actually run MD into generic Snapshot MD driver
+                generate_md_trajectory(model[traj_label],self.seed,self.target,traj_label,self.traj_suffix,
+                                       wrapper=self.wrapper,count_snaps=self.nsnap,count_equil=self.nequil,
+                                       md_steps=self.md_steps,md_timestep=self.md_timestep,
+                                       md_friction=self.md_friction,store_full_traj=self.store_full_traj,
+                                       temp=self.temp,calc_params=calc_params,dynamics=self.dynamics,
+                                       snap_wrapper=self.snap_wrapper if not self.recalculate_carved_traj else None,
+                                       snap_calc_params=self.snap_calc_params if not self.recalculate_carved_traj else None,
+                                       continuation=self.continuation,debugger=self.debugger)
+                output_trajfile = f"{self.seed}_{targstr(self.target)}_{traj_label}_{self.traj_suffix}.traj"
+                if os.path.exists(output_trajfile):
+                    output_traj = Trajectory(output_trajfile)
+                    continuation_len[traj_label] = len(output_traj)
+                    if continuation_len[traj_label]>=self.nsnap:
+                        enough_data[traj_label] = True
+                    else:
+                        offsets[traj_label] += 'A'
+                    print(f'# Output file {output_trajfile} now contains {continuation_len[traj_label]} of {self.nsnap} snapshots.')
+
 
 
     def make_parser(self):

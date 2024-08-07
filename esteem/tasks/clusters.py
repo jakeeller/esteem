@@ -109,7 +109,7 @@ class ClustersTask:
         
         # Setup snapshot range
         if self.max_snapshots is None:
-            self.max_snapshots = 1e6
+            self.max_snapshots = 10000000
         if self.min_snapshots is None:
             self.min_snapshots = 0
 
@@ -208,6 +208,7 @@ class ClustersTask:
             # Open trajectory via link, then slice if required
             input_traj = Trajectory(traj_carved_file)
             traj_max = min(len(input_traj),self.max_snapshots)
+            self.max_snapshots = traj_max
             traj_min = max(0,self.min_snapshots)
             traj_carved = list(enumerate(input_traj[traj_min:traj_max]))
             if self.task_id is not None:
