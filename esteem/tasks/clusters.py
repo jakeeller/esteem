@@ -1062,13 +1062,13 @@ def sanity_check(trajname='', wrapper=None, calc_params = {},
         solu_energy = np.mean(solu_energy)
     if len(ref_solu_d.shape)==2:
         ref_solu_d = np.mean(ref_solu_d,axis=0)
-    if len(ref_solv_d.shape)==2:
-        ref_solv_d = np.mean(ref_solv_d,axis=0)
     ref_mol_xyz = f'{ref_solv_dir}/is_opt_{ref_solv}/{ref_solv}.xyz'
     solv_energy,ref_solv_d,solv_model = get_ref_mol_energy(wrapper,ref_solv,
             ref_solv,calc_params,ref_mol_xyz,ref_solv_dir,dipole=True)
     if isinstance(solv_energy,np.ndarray):
         solv_energy = np.mean(solv_energy)
+    if len(ref_solv_d.shape)==2:
+        ref_solv_d = np.mean(ref_solv_d,axis=0)
     print('# Solute reference energy, dipole: ',solu_energy,ref_solu_d)
     print('# Solvent reference energy, dipole: ',solv_energy,ref_solv_d)
 
