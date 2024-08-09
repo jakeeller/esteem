@@ -904,6 +904,7 @@ def plot_diff(e_x,e_y,rms_fd,xlabel=None,ylabel=None,clabel=None,stats={},plot_f
     if align_axes:
         lims = [np.min([ax.get_xlim(), ax.get_ylim()]),
                 np.max([ax.get_xlim(), ax.get_ylim()])]
+        cblims = cb.mappable.get_clim()
         if plot_file!='show':
             data_file = plot_file.replace('.png','.data.gz')
             print(f'# Dumping plot data to {data_file}')
