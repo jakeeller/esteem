@@ -86,6 +86,7 @@ def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suff
                 wlist = [get_traj_from_calc(tp)]
                 if separate_valid:
                     wlist += ['Q']
+                # Make a list of trajectories to find
                 wplist = get_trajectory_list(len(rand_seed))
                 rslist = list(rand_seed)
                 for iw,w in enumerate(wlist):
@@ -465,15 +466,18 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
     Takes lists of calculators, targets, random seeds
     """
     new_spectra_tasks = {}
+    # Loop over target states
     for target in targets:
         targstr = targets[target]
         targstrp = "gs" if targstr=="es1" else "es1"
+        # Loop over calculators
         for t in train_calcs:
             all_trajs = []
             all_corr_trajs = [] if corr_traj else None
             spectra_task.vibration_trajectory = None
             spectra_task.mode = "absorption" if targstr=="gs" else "emission"
             spectra_task.verbosity = 'normal'
+            # Set parameters for wrapper
             if spectra_task.wrapper is not None:
                 spectra_task.wrapper.task = spectra_task.mode.upper()
                 spectra_task.wrapper.rootname = f'{{solu}}_{{solv}}_{targstr}_spec'
@@ -481,9 +485,11 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
             spectra_task.exc_suffix = f'{targstr}_{meth}{t}_mldyn'
             spectra_task.output = f'{{solu}}_{{solv}}_{spectra_task.exc_suffix}_spectrum.png'
             tdir = '.'
-            rslist = list(rand_seed)
+            rslist = list(rand_seed) # ['a','b','c'...]
+            # Loop over trajectories to process
             for iw,w in enumerate(get_trajectory_list(ntraj)):
                 rs = rslist[iw]
+                # Add normal and correction trajectories (gs and es for each entry)
                 all_trajs.append([f"{tdir}/{{solu}}_{{solv}}_{targstr}_{w}_{meth}{t}{rs}_{traj_suffix}.traj", 
                                   f"{tdir}/{{solu}}_{{solv}}_{targstrp}_{w}_{meth}{t}{rs}_{traj_suffix}.traj"])
                 if corr_traj:
@@ -498,9 +504,11 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
 
 def setup_scripts(scriptname,seed,targstr,num_calcs,calc_suffix,method,script_settings,make_sbatch,allseed=None):
 
+    # Store original contents of declarations section
     store_decs = script_settings['declarations']
     if allseed is None:
         allseed = seed
+    # append to initial declarations to set up variables for Active Learning loop
     script_settings['declarations'] += f'''
 M="{calc_suffix[-1]}"
 T="{targstr}"
@@ -519,29 +527,41 @@ echo "X="$X "YP="$YP
     '''
 
     # Write job script for submission to HPC cluster
-    for task in ['mltrain','mltraj','mltest','specdyn','spectra']:
+    for task in ['mltrain','mltraj','mltest','mlfinaltest','specdyn','spectra']:
+        # Set up default target and task name
         script_settings['target'] = '$T"_"$W"ac"$X$M$Y'
         script_task = task
+        # Set up targets and task names for tasks with different patterns
         if task=="mltraj":
             script_settings['target'] += '"x"$C'
         if task=="specdyn":
-            script_settings['target'] += '_specdyn'
+            script_settings['target'] += '"_specdyn"'
             script_task = 'mltraj'
         if task=="spectra":
             script_settings['target'] = '$T"_"$W"ac"$X$M"_specdyn_recalc_carved"'
+        if task=="mlfinaltest":
+            script_settings['target'] += '"_mltraj_"$W"ac2"$M' 
+            script_task = 'mltest'
+        # Set up where to find executable
         script_settings['scriptname'] = '$scr'
         script_settings['execpath'] = '../'
-        if task=='mltrain' or task=='mltest':
+        # Set up seeds and jobnames in script
+        if task=='mltrain' or task=='mltest' or task=='mlfinaltest':
             script_settings['seed'] = '$SA'
             script_settings['jobname'] = f'{allseed}_{targstr}_{calc_suffix}_{task}'
-            script_settings['postfix'] = f'| tee -a $SA"_"{script_settings["target"]}"_{task}"$LOGSUFFIX.log'
         else:
-            script_settings['jobname'] = f'{seed}_{targstr}_{calc_suffix}_{task}'
             script_settings['seed'] = '$SP'
-            script_settings['postfix'] = f'| tee -a $SP"_"{script_settings["target"]}"_{task}"$LOGSUFFIX.log'
+            script_settings['jobname'] = f'{seed}_{targstr}_{calc_suffix}_{task}'
+        # Set up name of log file
+        if task!='specdyn': # avoid writing '_specdyn_mltraj' as part of log name
+            script_settings['postfix'] = f'| tee -a {script_settings["seed"]}"_"{script_settings["target"]}"_{script_task}"$LOGSUFFIX.log'
+        else:
+            script_settings['postfix'] = f'| tee -a {script_settings["seed"]}"_"{script_settings["target"]}$LOGSUFFIX.log'
+        # Write the script
         script_settings['num_threads'] = 1
         make_sbatch(task=script_task,**script_settings)
 
+    # restore previous declarations section
     script_settings['declarations'] = store_decs
 
 

@@ -46,7 +46,7 @@ NC=100
 # Method
 W="MACE"
 # Atoms method
-AM="orca"
+DFT="orca"
 # Initial clusters name
 IC="solvR2.5"
 # MD name
@@ -144,24 +144,37 @@ if true; then
 	  for UU in ${AALL[@]}; do
 	      python ../$scr mlclus $SP $IC"_"$UU | tee -a $SP"_"$IC"_"$UU"_mlclus_assemble.log"
 	  done
+	  # Clean up DFT directory
+	  if ! grep -q "FAIL"  $SP"_"$IC"_"$UU"_mlclus_assemble.log"; then
+	      rm $DFT"/"*".gbw" $DFT"/"*".cis"
+              tar -czf $DFT".tar.gz" $DFT --remove-files 
+	      rm slurm*
+	  else
+	      FAILS=true
+              echo "FAILs detected in "$SP"_"$IC"_"$UU"_mlclus_assemble.log"
+	  fi
           cd $origdir
       done
   done
+  if [ "$FAILS" = true ]; then
+      echo "Aborting due to previous FAILs"
+      exit
+  fi
 fi
 
 if false; then
    exit # quit for now, until previous bits verified to be working and deactivated
 fi
 
+# do atoms calculation
+if false; then
+   python $scr atoms ${SALL[0]} $DFT
+   mv ${SALL[0]}"_atoms_"$DFT".traj" $SA"_atoms_"$DFT".traj"
+fi
+
 # write AL scripts
 if true; then
    python $mkscr
-fi
-
-# do atoms calculation
-if false; then
-   python $scr atoms ${SALL[0]} $AM
-   mv ${SALL[0]}"_atoms_"$AM".traj" $SA"_atoms_"$AM".traj"
 fi
 
 # setup mltrain and mltest folders
@@ -270,6 +283,7 @@ do
       done
   done
   wait
+  FAILS=false
   for SP in ${SALL[@]}; do # loop over seeds
       echo Clusters Assemble Generation $X for $SP
       for TT in ${TALL[@]}; do # loop over targets
@@ -280,9 +294,23 @@ do
 	  for UU in ${UALL[@]}; do
 	      python ../$scr mlclus $SP $TT"_"$W"ac"$X$M"_"$UU | tee -a $SP"_"$TT"_"$W"ac"$X$M"_"$UU"_mlclus_assemble.log"
 	  done
+	  # Clean up DFT directory
+	  if ! grep -q "FAIL"  $SP"_"$TT"_"$W"ac"$X$M"_"$UU$"mlclus_assemble.log"; then
+	      rm $DFT"_ac"$X$M"/"*".gbw" $DFT"_ac"$X$M"/"*".cis"
+              tar -czf $DFT"_ac"$X$M".tar.gz" $DFT"_ac"$X$M --remove-files 
+	      rm slurm*
+	  else
+	      FAILS=true
+              echo "FAILs detected in "$SP"_"$TT"_"$W"ac"$X$M"_"$UU"_mlclus_assemble.log"
+	  fi
           cd $origdir
       done
   done
+  if [ "$FAILS" = true ]; then
+      echo "Aborting due to previous FAILs"
+      exit
+  fi
+
   # test the calculators on the assembled trajectory
   echo Testing for Generation $X for $SA calculators
   for TT in ${TALL[@]}; do

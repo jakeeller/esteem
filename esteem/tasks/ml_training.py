@@ -113,7 +113,10 @@ class MLTrainingTask:
                         trajfile = f'{trajfn}_{pref}merged_{self.calc_suffix}.traj'
                         pref = 'valid'
                         validfile = f'{trajfn}_{pref}merged_{self.calc_suffix}.traj'
+                        #if not os.path.isfile(trajfile) and not os.path.isfile(validfile):
                         merge_traj(trajnames,trajfile,validfile,valid_fraction,split_seed=rand_seed)
+                        #else:
+                        #    print(f'# Skipping trajectory merge: {trajfile} and {validfile} already exist')
 
                 else:
                     raise Exception('# Empty Trajectory file(s) found: ',

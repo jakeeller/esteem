@@ -73,9 +73,9 @@ clusters_task.script_settings = parallel.get_default_script_settings(clusters_ta
 clusters_task.wrapper.setup(nprocs=8,maxcore=2500) # change to 32, 7200 for Sulis
 clusters_task.script_settings['ntask'] = 8 # change to 64 for Sulis
 clusters_task.wrapper.orcaprofile=OrcaProfile(command=orcacmd)
-clusters_task.output = 'orca'
-clusters_task.nroots = 2
-clusters_task.target = [0,1,2]
+clusters_task.output = clusters_task.wrapper.output
+clusters_task.nroots = len(targets.keys())
+clusters_task.target = list(targets.keys())
 clusters_task.func = solutes_task.func
 clusters_task.basis = solutes_task.basis
 clusters_task.ref_mol_dir = f"{{target}}_{solutes_task.func}"
@@ -107,7 +107,7 @@ for rad in rads:
 
 # Set up tasks for clusters runs for each Active Learning iteration
 meth=""
-truth="orca"
+truth=clusters_task.wrapper.output
 train_calcs = ["MACEac0u","MACEac1u","MACEac2u"]
 seed="{solu}_{solv}"
 traj_suffix = 'mlclus'
@@ -123,7 +123,7 @@ active_clusters_tasks = create_clusters_tasks(clusters_task,train_calcs=train_ca
                                               seed=seed,traj_suffix=traj_suffix,
                                               md_suffix=md_suffix,md_dir_suffix=md_dir_suffix,
                                               targets=targets,rand_seed=rand_seed,
-                                              meth="",truth="orca",separate_valid=False)
+                                              meth="",truth=truth,separate_valid=False)
 all_clusters_tasks.update(active_clusters_tasks)
 
 # Set up tasks for ML Training
@@ -201,7 +201,7 @@ all_spectra_tasks = {}
 func = solutes_task.func
 spec_method = f'ImplicitSolvent_{func}'
 spectra_task.broad = 0.05 # eV
-spectra_task.inputformat   = 'orca'
+spectra_task.inputformat   = solutes_task.wrapper.output
 spectra_task.wavelength = (300,700,1) # nm start stop step
 spectra_task.warp_scheme = None
 spectra_task.output = f'{{solu}}_{{solv}}_{spec_method}.png'
@@ -224,7 +224,7 @@ spectra_task.wrapper = None
 spectra_task.broad = 0.05
 spectra_task.files = None
 spectra_task.exc_suffix = f'solvR{rads[0]}'
-spectra_task.trajectory = [[f"{{solu}}_{{solv}}_gs_A_orca.traj",f"{{solu}}_{{solv}}_es1_A_orca.traj"]]
+spectra_task.trajectory = [[f"{{solu}}_{{solv}}_gs_A_{truth}.traj",f"{{solu}}_{{solv}}_es1_A_{truth}.traj"]]
 all_spectra_tasks[spec_method] = deepcopy(spectra_task)
 
 # Add active learning spectra tasks (vertical excitations)
