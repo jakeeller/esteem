@@ -702,11 +702,11 @@ def formatted_output(iout,targ,natoms,pos,energy,forces,dipole,calc_forces,calc_
     if isinstance(targ,list):
         energy_str = ''
         for itarg,tg in enumerate(targ):
-            energy_str += f'{energy[itarg]:16.8f}'
+            energy_str += f'{energy[itarg]:18.8f}'
     else:
         if isinstance(energy,np.ndarray):
             energy = np.mean(energy)
-        energy_str = f'{energy:16.8f}'
+        energy_str = f'{energy:18.8f}'
     freq_str = ''
     # Write line to stdout
     print(f'{iout:04} {targ} {energy_str} {natoms:5} {pos_str} {force_str} {dip_str}')
@@ -888,6 +888,8 @@ def subtract_atom_energies_from_traj(traj,atom_traj,trajout):
 def plot_diff(e_x,e_y,rms_fd,xlabel=None,ylabel=None,clabel=None,stats={},plot_file='show',align_axes=True):
 
     from matplotlib import pyplot
+    from json import dump
+    import numpy as np
 
     # Optionally, plot to file or screen
     if plot_file is None:
@@ -902,6 +904,17 @@ def plot_diff(e_x,e_y,rms_fd,xlabel=None,ylabel=None,clabel=None,stats={},plot_f
     if align_axes:
         lims = [np.min([ax.get_xlim(), ax.get_ylim()]),
                 np.max([ax.get_xlim(), ax.get_ylim()])]
+        if plot_file!='show':
+            data_file = plot_file.replace('.png','.data.gz')
+            print(f'# Dumping plot data to {data_file}')
+            np.savetxt(data_file,np.stack((e_x,e_y,rms_fd),axis=-1))
+            lims_dict = {'xlims': lims,'ylims': lims, 'cblims': cblims}
+            plot_file_json = plot_file.replace('.png','.lims.json')
+            print(f'# Dumping limits {lims_dict} to {plot_file_json}')
+            dump(lims_dict,open(plot_file_json,"w"),indent=2)
+            plot_file_stats = plot_file.replace('.png','.stats.json')
+            print(f'# Dumping stats {stats} to {plot_file_stats}')
+            dump(stats,open(plot_file_stats,"w"),indent=2)
         ax.plot(lims, lims, 'k-', alpha=0.75, zorder=0)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
