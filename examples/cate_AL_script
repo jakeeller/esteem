@@ -106,7 +106,9 @@ if true; then
               python $scr mlclus $SP $IC"_"$UU | tee -a $SP"_"$IC"_"$UU"_setup.log"
 	  done
 	  # move log file to first directory to clean up
-	  mv $SP"_"$IC"_"$UU"_setup.log" ${SALL[0]}"_"$IC
+	  if [ -d ${SALL[0]}"_"$IC ]; then
+	      mv $SP"_"$IC"_"$UU"_setup.log" ${SALL[0]}"_"$IC
+          fi
       done
   done
   for SP in ${SALL[@]}; do # loop over seeds
@@ -118,7 +120,7 @@ if true; then
           # carve the input trajectory
 	  for UU in ${AALL[@]}; do # loop over B and A
               python ../$scr mlclus_setup $SP $IC"_"$UU | tee -a $SP"_"$IC"_"$UU"_mlclus_carve.log"
-           done
+          done
 	  cd $origdir
       done
   done
@@ -140,9 +142,11 @@ if true; then
 	  if [ $SP == ${SALL[NS-1]} ] && [ $TT != ${TALL[0]} ]; then continue; fi
           # move to clusters directory
           cd $SP$"_"$IC
-	  # assemble the completed trajectories
+	  # assemble the completed trajectories (do not append log in this case)
+	  # (we must avoid keeping any previous failed attempts to not trigger
+	  # the FAILS check below)
 	  for UU in ${AALL[@]}; do
-	      python ../$scr mlclus $SP $IC"_"$UU | tee -a $SP"_"$IC"_"$UU"_mlclus_assemble.log"
+	      python ../$scr mlclus $SP $IC"_"$UU | tee $SP"_"$IC"_"$UU"_mlclus_assemble.log"
 	  done
 	  # Clean up DFT directory
 	  if ! grep -q "FAIL"  $SP"_"$IC"_"$UU"_mlclus_assemble.log"; then
@@ -189,7 +193,7 @@ if true; then
        if [ ! -e $SA"_"$TT"_"$W"ac_test" ]; then
           mkdir $SA"_"$TT"_"$W"ac_test"
        fi
-       mv $SA"_"$TT"_"$W"ac"$M"_mltest_sub" $SA"_"$TT"_"$W"ac_test"
+       mv $SA"_"$TT"_"$W"ac"$M"_mltest_sub" $SA"_"$TT"_"$W"ac"$M"_mlfinaltest_sub" $SA"_"$TT"_"$W"ac_test"
    done
 fi
 
@@ -202,8 +206,10 @@ if true; then
 	  X=0 
           python $scr mltraj_setup $SP $TT"_"$W"ac"$X$M"ax3" | tee -a $SP"_"$TT"_"$W"ac"$X$M"a_mltraj_setup.log"
 	  # move scripts and setup log into folder
-	  mv $SP"_"$TT"_"$W"ac"$M"_mltraj_sub" $SP"_"$TT"_"$W"ac"$X$M"a_mltraj_setup.log" $SP"_"$TT"_"$W"ac_mldyn"
-	  mv $SP"_"$TT"_"$W"ac"$M"_specdyn_sub" $SP"_"$TT"_"$W"ac"$M"_spectra_sub" $SP"_"$TT"_"$W"ac_mldyn"
+	  if [ -d $SP"_"$TT"_"$W"ac_mldyn" ]; then
+	      mv $SP"_"$TT"_"$W"ac"$M"_mltraj_sub" $SP"_"$TT"_"$W"ac"$X$M"a_mltraj_setup.log" $SP"_"$TT"_"$W"ac_mldyn"
+	      mv $SP"_"$TT"_"$W"ac"$M"_specdyn_sub" $SP"_"$TT"_"$W"ac"$M"_spectra_sub" $SP"_"$TT"_"$W"ac_mldyn"
+          fi
       done
   done
 fi
@@ -255,7 +261,9 @@ do
               python $scr mlclus $SP $TT"_"$W"ac"$X$M"_"$UU | tee -a $SP"_"$TT"_"$W"ac"$X$M"_setup.log"
 	  done
 	  # move setup log to first directory to clean up
-	  mv $SP"_"$TT"_"$W"ac"$X$M"_setup.log" ${SALL[0]}"_"$TT"_"$W"ac_mlclus"
+	  if [ -d ${SALL[0]}"_"$TT"_"$W"ac_mlclus" ]; then
+	      mv $SP"_"$TT"_"$W"ac"$X$M"_setup.log" ${SALL[0]}"_"$TT"_"$W"ac_mlclus"
+	  fi
       done
   done
   for SP in ${SALL[@]}; do # loop over seeds
@@ -323,6 +331,17 @@ do
      exit # quit for now, until previous bits verified to be working and this can be deactivated
   fi
 done
+
+# test all the calculators on the final generation's trajectory sample
+for ((X=0;X<=$G;X++)); do
+  echo Testing for Generation $X for $SA calculators on final trajectory
+  for TT in ${TALL[@]}; do
+      cd $SA"_"$TT"_"$W"ac_test"
+      sbatch --wait --array=$((X*10))-$((X*10+C-1)) $SA"_"$TT"_"$W"ac"$M"_mlfinaltest_sub" &
+      cd $origdir
+  done
+done
+exit
 
 # run mltraj task for spectroscopy with committee of calculators
 if true; then
