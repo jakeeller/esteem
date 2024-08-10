@@ -56,6 +56,8 @@ for basis in basis_sets:
             solutes_task.target = target
             solutes_task.directory = prefix
             all_solutes_tasks[prefix] = deepcopy(solutes_task)
+# adjust solutes task for atoms calculation
+solutes_task.wrapper.setup(nprocs=1)
 
 # Set up solvate task
 solvate_task.wrapper = AmberWrapper()
@@ -63,6 +65,7 @@ solvate_task.md_geom_prefix = f"gs_{solutes_task.func}"
 solvate_task.nsteps = 2000
 solvate_task.nsnaps = 500
 solvate_task.script_settings = parallel.get_default_script_settings(solvate_task.wrapper)
+solvate_task.script_settings['ntask'] = 32
 solvate_task.boxsize = {'cycl': 18,'meth': 15}
 solvate_task.ewaldcut = 9.0
 all_solvate_tasks = {'md': solvate_task}
@@ -70,7 +73,7 @@ all_solvate_tasks = {'md': solvate_task}
 # Set up clusters task
 clusters_task.wrapper = ORCAWrapper()
 clusters_task.script_settings = parallel.get_default_script_settings(clusters_task.wrapper)
-clusters_task.wrapper.setup(nprocs=8,maxcore=2500) # change to 32, 7200 for Sulis
+clusters_task.wrapper.setup(nprocs=8,maxcore=2500) # change to 32, 7200 or 20 11500 for Sulis
 clusters_task.script_settings['ntask'] = 8 # change to 64 for Sulis
 clusters_task.wrapper.orcaprofile=OrcaProfile(command=orcacmd)
 clusters_task.output = clusters_task.wrapper.output
