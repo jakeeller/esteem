@@ -77,7 +77,7 @@ class AmberWrapper():
         else:
             self.amber_exe_parallel = self.amber_exe_serial
 
-    def prepare_input_acpype(self,seed,netcharge=0,offset=0):
+    def prepare_input_acpype(self,seed,netcharge=0,offset=0,pref='../'):
         """Prepares input parameters and topologies for Amber calculations"""
         
         import sys
@@ -87,7 +87,7 @@ class AmberWrapper():
         store_argv = sys.argv
 
         # Load molecular structure from .xyz file
-        mol = read(f'{seed}.xyz')
+        mol = read(f'{pref}{seed}.xyz')
 
         # Convert to pdb format
         write(f'{seed}.pdb',mol)
@@ -116,11 +116,11 @@ class AmberWrapper():
 
         sys.argv = store_argv
             
-    def prepare_input(self,seed,netcharge=0,offset=0):
+    def prepare_input(self,seed,netcharge=0,offset=0,pref="../"):
         """Prepares input parameters and topologies for Amber calculations"""
 
         # Load molecular structure from .xyz file
-        mol = read(f'{seed}.xyz')
+        mol = read(f'{pref}{seed}.xyz')
 
         # Convert to pdb format
         write(f'{seed}.pdb',mol)
@@ -168,7 +168,7 @@ class AmberWrapper():
         # run tleap to set up prmtop
         f = open(f'{seed}_tleap.in', 'w')
         tleap_str =  ("source leaprc.protein.ff14SB\n" +
-                      "source leaprc.gaff2\n" +
+                      "source leaprc.gaff\n" +
                       f"mol = loadmol2 {seed}.mol2\n" +
                       f"saveamberparm mol {seed}.prmtop {seed}.inpcrd\n" +
                       "quit\n")
@@ -255,9 +255,9 @@ class AmberWrapper():
             chg = '-'
         return chg
 
-    def find_solu_center_at(self,solute):
+    def find_solu_center_at(self,solute,pref='../'):
         try:
-            at = read(f"{solute}.xyz")
+            at = read(f"{pref}{solute}.xyz")
         except:
             raise Exception(f"Failed to read xyz file {solute}.xyz")
         com=at.get_center_of_mass()
@@ -278,7 +278,7 @@ class AmberWrapper():
         else:
             raise Exception("Symbols did not match when finding center atom")
 
-    def add_solvent_box(self,solute,solvent,counterions,solvatedseed,box_size):
+    def add_solvent_box(self,solute,solvent,counterions,solvatedseed,box_size,pref='../'):
         """Loads an Amber mol2 file for a solute and solvent, and creates a solvated box"""
 
         if solute in counterions:
@@ -832,7 +832,8 @@ ntpr=1,ntwf=1,ntwe=1,ntwx=1 ! (output frequencies)
             f.write(snap_str)
             f.close()
         step = 0
-        trajname = seed+'.traj'
+        # output trajectory goes in parent directory
+        trajname = f'../{seed}.traj'
         if start==0:
             copyfile('equil.rst',f'snap{-1:04}.rst')
             traj = Trajectory(trajname, 'w')

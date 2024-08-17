@@ -227,11 +227,22 @@ class SolvateTask:
         return
 
     def setup(self):
+        from os.path import isfile, isdir
+        from os import makedirs, chdir, getcwd
+
         # Pass necessary inputs into wrapper
         self.wrapper.dt = self.timestep
         self.wrapper.temp0 = self.temp
         self.wrapper.friction = self.md_friction
         self.wrapper.ttime = self.md_ttime
+
+        # Create and change to working directory
+        wdir = self.wrapper.output # eg 'amber'
+        if not isdir(wdir):
+            makedirs(wdir)
+        origdir = getcwd()
+        chdir(wdir)
+
         if hasattr(self,'setup_cell'):
             self.setup_cell()
         else:
@@ -243,6 +254,8 @@ class SolvateTask:
                 self.wrapper = orig_wrapper
             else:
                 self.setup_amber()
+
+        chdir(origdir)
 
     # Main program for Solvated MD
     def run(self):
@@ -274,16 +287,25 @@ class SolvateTask:
             An example for catechol in water with the default ``md_suffix``
         """
         
-        from os.path import isfile
+        from os.path import isfile, isdir
+        from os import makedirs, chdir, getcwd
         from ase.io import write
+
+        wdir = self.wrapper.output # eg 'amber'
+        if not isdir(wdir):
+            makedirs(wdir)
+        origdir = getcwd()
+        chdir(wdir)
 
         # Load in models from pdb files if requested, else xyz
         if hasattr(self.wrapper,'input_ext'):
             inp = self.wrapper.input_ext
+            pref = ''
         else:
             inp = 'xyz'
-        solute = read(f'{self.solute}.{inp}')
-        solvent = read(f'{self.solvent}.{inp}')
+            pref = '../'
+        solute = read(f'{pref}{self.solute}.{inp}')
+        solvent = read(f'{pref}{self.solvent}.{inp}')
 
         solvatedseed = f'{self.solute}_{self.solvent}_solv'
         solvated = read(f'{solvatedseed}.{inp}')
@@ -363,6 +385,7 @@ class SolvateTask:
         self.wrapper.snapshots(snap,solvatedseed,calc_params=calc_params,
                                nsnaps=self.nsnaps,nsteps=self.nsteps,start=start,
                                nat_solu=len(solute),nat_solv=len(solvent))
+        chdir(origdir)
 
     def make_parser(self):
 

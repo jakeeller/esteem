@@ -537,7 +537,7 @@ def solvate_driver(all_solutes,all_solvents,seed,task,make_sbatch=None):
             
             # Write job script for submission to HPC cluster
             if make_sbatch is not None:
-                task.script_settings['jobname'] = f'{solute}_{solvent}_{md_suffix}'
+                task.script_settings['jobname'] = f'{solute}_{solvent}_{md_suffix}_solvate'
                 task.script_settings['execpath'] = '../'
                 make_sbatch(seed=seed,task='solvate',**task.script_settings)
 
@@ -561,7 +561,7 @@ def solvate_driver(all_solutes,all_solvents,seed,task,make_sbatch=None):
 
 
 # # Run Clusters script on MD snapshots to extract region near solute
-from shutil import copyfile
+from shutil import copyfile,SameFileError
 import itertools
 from os import path,chdir,makedirs,getcwd,symlink
 
@@ -650,7 +650,7 @@ def clusters_driver(all_solutes,all_solvents,seed,task,make_sbatch=None,dryrun=F
             continue
         
         # We are in the parent directory of this project, so setup clusters
-        # subdirectories if not already present 
+        # subdirectories if not already present
         if base_path not in all_paths:
             # Check that MD has finished - skip to next file if not
             if not isinstance(task.md_suffix,list):
@@ -701,6 +701,8 @@ def clusters_driver(all_solutes,all_solvents,seed,task,make_sbatch=None,dryrun=F
             # so they can be used in cluster extraction
             try:
                 copyfile(f'{md_path}/{solute}.xyz',f'{clus_path}/{solute}.xyz')
+            except SameFileError:
+                pass
             except FileNotFoundError:
                 print(f'# Geometry file {md_path}/{solute}.xyz not found')
             except PermissionError:
@@ -708,6 +710,8 @@ def clusters_driver(all_solutes,all_solvents,seed,task,make_sbatch=None,dryrun=F
             if solvent is not None:
                 try:
                     copyfile(f'{md_path}/{solvent}.xyz',f'{clus_path}/{solvent}.xyz')
+                except SameFileError:
+                    pass
                 except FileNotFoundError:
                     print(f'# Geometry file {md_path}/{solvent}.xyz not found')
                 except PermissionError:
@@ -767,9 +771,6 @@ def clusters_driver(all_solutes,all_solvents,seed,task,make_sbatch=None,dryrun=F
             task.task_id = parallel.get_array_task_id()
             # Finally, actually run the task
             task.run(dryrun=dryrun)
-
-
-# In[1]:
 
 
 def get_solu_solv_names(seed):
@@ -1348,10 +1349,14 @@ def mltraj_driver(mltraj,all_solutes,all_solvents,cleanup_only=False,setup_only=
     # Check if we are in the right directory, create it if it does not exists
     base_path = path.basename(getcwd())
     seed_state_str = f'{mltraj.seed}_{targstr(mltraj.target)}'
-    if mltraj.calc_dir_suffix is not None:
-        traj_dir = f'{seed_state_str}_{mltraj.calc_dir_suffix}_mldyn'
+    if mltraj.traj_dir_suffix is None:
+        if mltraj.calc_dir_suffix is not None:
+            traj_dir_suffix = f'{mltraj.calc_dir_suffix}_mldyn'
+        else:
+            traj_dir_suffix = f'{mltraj.calc_suffix}_mldyn'
     else:
-        traj_dir = f'{seed_state_str}_{mltraj.calc_suffix}_mldyn'
+        traj_dir_suffix = mltraj.traj_dir_suffix
+    traj_dir = f'{seed_state_str}_{traj_dir_suffix}'
     if base_path != traj_dir:
         if not path.exists(traj_dir):
             print(f'# Creating directory {traj_dir}')

@@ -78,7 +78,13 @@ def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suff
                 task.target = list(targets)
                 task.exc_suffix = f'{targets[target]}_{meth}{t}_{traj_suffix}'
                 task.exc_suffix = f'{targets[target]}_{meth}{t}'
-                task.exc_dir_suffix = f'{targets[target]}_{meth}{pref(t)}_{traj_suffix}'
+                if hasattr(task,'exc_dir_suffix'):
+                    if task.exc_dir_suffix is None:
+                        task.exc_dir_suffix = f'{targets[target]}_{meth}{pref(t)}_{traj_suffix}'
+                    else:
+                        task.exc_dir_suffix = task.exc_dir_suffix.replace('{targ}',targets[target])
+                else:
+                    task.exc_dir_suffix = f'{targets[target]}_{meth}{pref(t)}_{traj_suffix}'
                 task.output = f'{truth}_{suff(tp)}'
                 task.carved_suffix = f'carved_{suff(tp)}'
                 task.selected_suffix = f'selected_{suff(tp)}'
@@ -99,7 +105,10 @@ def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suff
                     elif separate_valid: # for the validation/testing trajectories, offset the snapshots
                         task.min_snapshots = task.max_snapshots
                         task.max_snapshots = task.max_snapshots + valid_snapshots
-                    task.md_prefix = f'{seed}_{targets[target]}_{meth}{pref(tp)}_{md_dir_suffix}'
+                    if not hasattr(task,'md_dir_suffix'):
+                        task.md_prefix = f'{seed}_{targets[target]}_{meth}{pref(tp)}_{md_dir_suffix}'
+                    else:
+                        task.md_prefix = f'{seed}_{targets[target]}_{task.md_dir_suffix}'
                     task.md_suffix = [f'{targets[target]}_{wp}_{meth}{tp}{rslist[i]}_{md_suffix}' for i,wp in enumerate(wplist)]
                     # Collapse list if it just contains one entry
                     if len(wplist)==1:
@@ -366,7 +375,8 @@ def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,met
         for t in train_calcs:
             mltraj_task.wrapper = md_wrapper
             mltraj_task.calc_prefix = ""
-            mltraj_task.calc_dir_suffix = f'{meth}{pref(t)}'
+            if mltraj_task.calc_dir_suffix is None:
+                mltraj_task.calc_dir_suffix = f'{meth}{pref(t)}'
             mltraj_task.target = target
             targstr = targets[target]
             for rs in rand_seed:

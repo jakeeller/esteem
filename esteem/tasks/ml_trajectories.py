@@ -162,6 +162,7 @@ class MLTrajTask:
         parser.add_argument('--calc_seed','-Z',default=None,type=str,help='Seed for the calculator')
         parser.add_argument('--calc_suffix','-C',default='',type=str,help='Suffix for the calculator (often specifies ML hyperparameters)')
         parser.add_argument('--calc_dir_suffix','-D',default=None,type=str,help='Prefix for the calculator (often specifies directory)')
+        parser.add_argument('--traj_dir_suffix','-Y',default=None,type=str,help='Prefix for the trajectory (often specifies directory)')
         parser.add_argument('--calc_prefix','-P',default='',type=str,help='Prefix for the calculator (often specifies directory)')
         parser.add_argument('--target','-t',default=0,type=int,help='Excited state index, zero for ground state')
         parser.add_argument('--md_timestep','-q',default=10*AUT,type=float,help='Timestep in ASE units')

@@ -228,6 +228,12 @@ class ClustersTask:
                 target = list(range(0,self.nroots+1))
         else:
             target = self.nroots
+        wdir = self.output
+        if not os.path.exists(wdir):
+            try:
+                os.makedirs(wdir)
+            except FileExistsError:
+                print(f"# Possible mid-air collision between jobs - directory {wdir} exists")
         if dryrun:
             print(f'# Cluster setup completed, halting before calculation.')
             return
