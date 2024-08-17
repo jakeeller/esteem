@@ -126,14 +126,14 @@ class MLTestingTask:
         # Open temporary trajectory for reading
         outtraj = Trajectory(outtrajfile)
         if self.ref_mol_dir is not None:
-            intrajfile = trajfn+"_"+calc_suffix+"_"+which_traj_str+'_refsub.traj'
-            self.subtract_reference_energies(intraj,intrajfile)
+            intrajfile_refsub = trajfn+"_"+calc_suffix+"_"+which_traj_str+'_refsub.traj'
+            self.subtract_reference_energies(intraj,intrajfile_refsub)
             intraj.close()
-            intraj = Trajectory(intrajfile)
-            outtrajfile = trajfn+"_"+output_traj+'_refsub.traj'
-            self.subtract_reference_energies(outtraj,outtrajfile)
+            intraj = Trajectory(intrajfile_refsub)
+            outtrajfile_refsub = trajfn+"_"+output_traj+'_refsub.traj'
+            self.subtract_reference_energies(outtraj,outtrajfile_refsub)
             outtraj.close()
-            outtraj = Trajectory(outtrajfile)
+            outtraj = Trajectory(outtrajfile_refsub)
             
         # Finally, plot comparison
         clabel = 'RMS Force component deviation (eV/Ang)'
@@ -144,6 +144,9 @@ class MLTestingTask:
         if self.cleanup: # optional cleanup
             os.remove(intrajfile)
             os.remove(outtrajfile)
+            if self.ref_mol_dir is not None:
+                os.remove(intrajfile_refsub)
+                os.remove(outtrajfile_refsub)
 
     def subtract_reference_energies(self,trajin,trajout_file):
         """Subtract reference energies from a trajectory to just get energy above reference zero"""
