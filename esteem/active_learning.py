@@ -76,10 +76,15 @@ def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suff
         for tp in [t]:
             for target in targets:
                 task.target = list(targets)
+                task.exc_suffix = f'{targets[target]}_{meth}{t}'
+                task.output = f'{truth}_{suff(tp)}'
+                task.carved_suffix = f'carved_{suff(tp)}'
+                task.selected_suffix = f'selected_{suff(tp)}'
                 if traj_suffix!='mlclus':
-                    task.exc_suffix = f'{targets[target]}_{meth}{t}_{traj_suffix}'
-                else:
-                    task.exc_suffix = f'{targets[target]}_{meth}{t}'
+                    task.exc_suffix = f'{task.exc_suffix}_{traj_suffix}'
+                    task.output = f'{task.output}_{traj_suffix}'
+                    task.carved_suffix = f'{task.carved_suffix}_{traj_suffix}'
+                    task.selected_suffix = f'{task.selected_suffix}_{traj_suffix}'
                 if hasattr(task,'exc_dir_suffix'):
                     if task.exc_dir_suffix is None:
                         task.exc_dir_suffix = f'{targets[target]}_{meth}{pref(t)}_{traj_suffix}'
@@ -87,9 +92,6 @@ def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suff
                         task.exc_dir_suffix = task.exc_dir_suffix.replace('{targ}',targets[target])
                 else:
                     task.exc_dir_suffix = f'{targets[target]}_{meth}{pref(t)}_{traj_suffix}'
-                task.output = f'{truth}_{suff(tp)}'
-                task.carved_suffix = f'carved_{suff(tp)}'
-                task.selected_suffix = f'selected_{suff(tp)}'
                 task.script_settings['logdir'] = task.output
                 wlist = [get_traj_from_calc(tp)]
                 if separate_valid:
