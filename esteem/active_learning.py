@@ -76,8 +76,10 @@ def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suff
         for tp in [t]:
             for target in targets:
                 task.target = list(targets)
-                task.exc_suffix = f'{targets[target]}_{meth}{t}_{traj_suffix}'
-                task.exc_suffix = f'{targets[target]}_{meth}{t}'
+                if traj_suffix!='mlclus':
+                    task.exc_suffix = f'{targets[target]}_{meth}{t}_{traj_suffix}'
+                else:
+                    task.exc_suffix = f'{targets[target]}_{meth}{t}'
                 task.exc_dir_suffix = f'{targets[target]}_{meth}{pref(t)}_{traj_suffix}'
                 task.output = f'{truth}_{suff(tp)}'
                 task.carved_suffix = f'carved_{suff(tp)}'
@@ -94,7 +96,8 @@ def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suff
                     if iw==0:
                         task.min_snapshots = init_min_snapshots
                         task.max_snapshots = init_max_snapshots
-                        task.subset_selection_method = get_ssm_from_traj(w)
+                        if task.subset_selection_method is None:
+                            task.subset_selection_method = get_ssm_from_traj(w)
                         task.subset_selection_which_traj = w
                     elif separate_valid: # for the validation/testing trajectories, offset the snapshots
                         task.min_snapshots = task.max_snapshots
@@ -107,7 +110,6 @@ def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suff
                     task.which_traj = w
                     traj_char = '_'+w #'' if w==t[-1].upper() else '_'+w
                     new_clusters_tasks[task.exc_suffix+traj_char] = deepcopy(task)
-                task.subset_selection_method = None
     return new_clusters_tasks
 
 

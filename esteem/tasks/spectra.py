@@ -31,8 +31,10 @@ class SpectraTask:
         elif hasattr(self.inputformat,'read_excitations'):
             read_excitations = self.inputformat.read_excitations
         elif self.inputformat.lower()=="precalculated":
+            from types import SimpleNamespace
+            self.wrapper = SimpleNamespace()
             all_excitations = np.zeros((0,2))
-            read_excitations = self.read_precalculated
+            self.wrapper.read_excitations = self.read_precalculated
         elif self.inputformat.lower()=="traj":
             if self.files != [] and self.files is not None:
                 raise Exception("Cannot specify traj and set files simultaneously")
@@ -227,7 +229,15 @@ class SpectraTask:
         return stick_spectrum, all_transition_origins
     
     def read_precalculated(self,calc=None):
-        calc.results = {'excitations': np.loadtxt(calc.label)}
+        import os
+        stick_spectrum = []
+        for f in self.files:
+            if not os.path.isfile(f):
+                raise OSError(f'# Could not read file {f}')
+            stick_spectrum.append(np.loadtxt(f)[:,1:3])
+        stick_spectrum = np.array(stick_spectrum).squeeze()
+        print(stick_spectrum.shape)
+        return stick_spectrum, None
 
     def vib_wrapper(self,model_init,model_targ):
 

@@ -176,11 +176,11 @@ class ClustersTask:
         if (not traj_carved_present) and self.radius is None:
             # No carving or merging required, just make link to input
             input_traj_name = f'{self.solute}{solvstr}_{self.md_suffix}.traj'
-            input_traj_lengths = [len(Trajectory(traj_carved_file))]
             print(f'# Looking for {traj_carved_file}')
             if not (os.path.isfile(f'{traj_carved_file}') or os.path.islink(f'{traj_carved_file}')):
                 print(f'# Creating link from {input_traj_name} to {traj_carved_file}')
                 os.symlink(input_traj_name,traj_carved_file)
+            input_traj_lengths = [len(Trajectory(traj_carved_file))]
         # Case where a subset is to be selected
         if self.subset_selection_method is not None: # and self.radius is None:
             input_suffix = self.selected_suffix
@@ -983,24 +983,27 @@ def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',
     k = 0 # how far we have got in original list
     tc = [] # list of (truncated) frames
     stde = [] # list of std of energies
-    for itraj,trajlen in enumerate(input_traj_lengths): # count trajectories and get length of each
-        k0 = k
-        for j in range(k0,k0+trajlen): # loop over entries
-            if method!='R':
-                stde_j=np.std(t[k].get_potential_energy())/len(t[k])
-            else:
-                stde_j = 0.0
-            if stde_j>stde_thresh:
-                print(f'# Standard deviation per atom at frame {j-k0:05} of trajectory {itraj} is: {stde_j}')
-                print(f'# This is above the threshold of {stde_thresh}')
-                print(f'# Truncating trajectory thereafter ({trajlen-j+k0} frames discarded).')
-                k = k0 + trajlen
-                break
-            else:
-                tc = tc + [t[k]]
-                stde.append(stde_j)
-                i = i + 1
-                k = k + 1
+    if method!='R':
+        for itraj,trajlen in enumerate(input_traj_lengths): # count trajectories and get length of each
+            k0 = k
+            for j in range(k0,k0+trajlen): # loop over entries
+                if method!='R':
+                    stde_j=np.std(t[k].get_potential_energy())/len(t[k])
+                else:
+                    stde_j = 0.0
+                if stde_j>stde_thresh:
+                    print(f'# Standard deviation per atom at frame {j-k0:05} of trajectory {itraj} is: {stde_j}')
+                    print(f'# This is above the threshold of {stde_thresh}')
+                    print(f'# Truncating trajectory thereafter ({trajlen-j+k0} frames discarded).')
+                    k = k0 + trajlen
+                    break
+                else:
+                    tc = tc + [t[k]]
+                    stde.append(stde_j)
+                    i = i + 1
+                    k = k + 1
+    else:
+        tc = t
     stde = np.array(stde)
     print(f'# Final input trajectory length: {len(tc)} {len(stde)}')
     # energy standard deviation-based sorting
@@ -1034,8 +1037,8 @@ def write_subset_trajectory(trajin_file,trajout_file,nmax,method='R',
     #framelist = list(args[(len(t)-nmax):len(t)])
     print(f'# Chosen frames:\n# {framelist}')
     print(f'# Chosen frames sorted ascending:\n# {sorted(framelist)}')
-    stdelist = stde[framelist]
     if method!='R':
+        stdelist = stde[framelist]
         print(f'# Standard deviations of E for chosen frames:\n# {stdelist}')
         print(f'# Average standard deviation of E for chosen frames: {np.mean(stdelist)}')
         print(f'# Average standard deviation of E for all frames: {np.mean(stde)}')
