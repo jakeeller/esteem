@@ -99,7 +99,8 @@ class SpecPyCodeWrapper():
                      "METHOD": str(self.method).upper(),
                      "SPECTRAL_WINDOW": self.spectral_window,
                      "MD_STEP": self.md_step,
-                     "CHROMOPHORE_MODEL": str(self.chromophore_model).upper()}
+                     "CHROMOPHORE_MODEL": str(self.chromophore_model).upper(),
+                     "CUMULANT_NONGAUSSIAN_PREFACTOR": str(self.cumulant_nongaussian_prefactor).upper()}
         for arg in self.args:
             inpf.write(f"{arg} {self.args[arg]}\n")
         inpf.close()

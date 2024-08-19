@@ -189,9 +189,16 @@ class ORCAWrapper():
         calc.parameters['orcasimpleinput'] += f" CPCMC({self._cosmo_seed(solvent)})"
         self._add_cpcm_block(calc,solvent)
 
-    def _add_tddft(self,calc,nroots,target=None):
+    def _add_tddft(self,calc,nroots,target=None,triplets=False,soc=False):
 
-        calc.parameters['orcablocks'] += f"\n%tddft\n  nroots {nroots}\n  tda false"
+        #calc.parameters['orcablocks'] += f"\n%tddft\n  nroots {nroots}\n TRIPLETS TRUE\n tda false" ###Switch to triplets is_tddft_calc
+        calc.parameters['orcablocks'] += f"\n%tddft\n  nroots {nroots}\n tda false"
+
+        if triplets is True:
+            calc.parameters['orcablocks'] +=f"\n TRIPLETS TRUE"
+        if soc is True:
+            calc.parameters['orcablocks'] +=f"\n DOSOC TRUE"
+
         if target is not None:
             calc.parameters['orcablocks'] += f"\n  Iroot {target}\n  end"
         else:
@@ -395,7 +402,7 @@ end
 
     def excitations(self,model,label,calc_params={},nroots=1,solvent=None,charge=0,
                     writeonly=False,readonly=False,continuation=False,cleanup=True,
-                    plot_homo=None,plot_lumo=None,plot_trans_den=None):
+                    plot_homo=None,plot_lumo=None,plot_trans_den=None,triplets=False,soc=False):
         """Calculates TDDFT excitations with the ORCA ASE calculator"""
         # Set up calculator
         basis, xc, target, disp = self.unpack_params(calc_params)
@@ -403,7 +410,7 @@ end
         calc_orca = ORCA(label=label,orcasimpleinput=f"{xc} {dispstr} {basis}",
                          orcablocks=f'%pal nprocs {self.nprocs} end\n%maxcore {self.maxcore}\n')
 
-        self._add_tddft(calc_orca,nroots,target=None)
+        self._add_tddft(calc_orca,nroots,target=None,triplets=triplets,soc=triplets)
         if solvent is not None:
             self._add_solvent(calc_orca,solvent)
         calc_orca.set(charge=charge)
@@ -456,7 +463,7 @@ end
                     #print(line)
                     root = int(line.split()[0])
                     energy = float(line.split()[1])*invcm
-                    osc = float(line.split()[3])
+                    osc = float(line.split()[3]) if line.split()[3]!= 'spin' else 'Spin Forbidden'
                     s_excit.append((root,energy,osc))
         calc.results['excitations'] = np.array(s_excit)
         calc.results['transition_origins'] = trans_lines

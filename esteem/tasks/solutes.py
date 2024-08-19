@@ -92,8 +92,9 @@ class SolutesTask:
             prevdir = nextdir
         if self.nroots > 0 and self.solvent is None:
             nextdir = "tddft"
+            print('calc_all', self.triplets)
             self.calc_all_excited_states(namelist,prevdir,nextdir,self.wrapper.excitations,
-                                    self.calc_params,self.nroots,charges=self.charges)
+                                    self.calc_params,self.nroots,charges=self.charges,triplets=self.triplets, soc=self.soc)
         # Vibrational frequency calculations, if requested and no higher
         # level of theory will follow later
         if self.vibrations and self.solvent is None:
@@ -112,11 +113,12 @@ class SolutesTask:
             # TDDFT calculations
             if self.nroots > 0:
                 nextdir = "is_tddft_"+self.solvstr(self.solvent)
+                print('calc_all_1', self.triplets)
                 self.calc_all_excited_states(namelist,prevdir,nextdir,self.wrapper.excitations,
                                         self.calc_params,nroots=self.nroots,
                                         solvent=self.solvent,charges=self.charges,
                                         plot_homo=self.plot_homo,plot_lumo=self.plot_lumo,
-                                        plot_trans_den=self.plot_trans_den)
+                                        plot_trans_den=self.plot_trans_den,triplets=self.triplets, soc=self.soc)
             # Vibrational frequency calculations, if requested
             if self.vibrations:
                 nextdir = "is_freq_"+self.solvstr(self.solvent)
@@ -568,7 +570,7 @@ class SolutesTask:
     # Calculate Excited states of all molecules
     def calc_all_excited_states(self,solute_names,in_path,out_path,excit_func,
                                 calc_params,nroots,solvent=None,charges={},
-                                plot_homo=None,plot_lumo=None,plot_trans_den=None):
+                                plot_homo=None,plot_lumo=None,plot_trans_den=None,triplets=False, soc=False):
         """
         Calculate excited states for each of a list of solutes
 
@@ -593,7 +595,7 @@ class SolutesTask:
         """
         from ase.io import read, write
         from os import path, makedirs, getcwd, chdir
-
+        
         if solvent is not None:
             sol_str = f'in {self.solvstr(solvent)} solvent '
         else:
@@ -639,7 +641,7 @@ class SolutesTask:
                 readonly = iconf < nconf_done
                 try:
                     excit_func(solute[iconf],label,calc_params,nroots,solvent,charge,readonly=readonly,
-                               plot_homo=plot_homo,plot_lumo=plot_lumo,plot_trans_den=plot_trans_den)
+                               plot_homo=plot_homo,plot_lumo=plot_lumo,plot_trans_den=plot_trans_den,triplets=triplets,soc=soc)
                 except KeyboardInterrupt:
                     raise Exception('Keyboard Interrupt')
                 except SyntaxError as e:
@@ -761,6 +763,8 @@ class SolutesTask:
         parser.add_argument('--basis','-b',default='6-311++G**',type=str,help='Basis set string for geom opt and TDDFT.')
         parser.add_argument('--func','-f',default='PBE0',type=str,help='XC Functional string for geom opt and TDDFT.')
         parser.add_argument('--disp','-d',default=True,type=bool,help='Grimme D3 Dispersion correction (set to True to activate)')
+        parser.add_argument('--triplets', '-v', default=False,type=bool,help='Compute first nroots spin forbidden triplet<-singlet transitions')
+        parser.add_argument('--soc', '-s', default=False,type=bool,help='Compute spin-orbit coupling between singlet and triplet states using quasi-degenerate perturbation theory')
 
         return parser
 

@@ -374,19 +374,23 @@ class SpectraTask:
                 self.wrapper.write_input_file()
                 self.wrapper.run()
             broad_spectrum = self.wrapper.read()
+            print('broad_spec1:', broad_spectrum)
         
         else:
             # Calculate excitation contributions at each wavelength
             broad_spectrum = np.zeros((len(wv),3))
             for i,x in enumerate(wv):
                 broad_spectrum[i,:] = np.array((x,spectral_value(x,stick_spectrum,self.broad),wavelength_eV_conv/x))
+            print('broad_spec2:', broad_spectrum)
 
         # Renormalise so peak is at 1, if specified
         if self.renorm:
             if isinstance(self.renorm,float):
                 broad_spectrum[:,1] = broad_spectrum[:,1] * self.renorm
+                print('broad_spec3', broad_spectrum)
             else: # renormalise so highest peak has maximum value 1
                 broad_spectrum[:,1] = broad_spectrum[:,1] / np.amax(broad_spectrum[:,1])
+                print('broad_spec4', broad_spectrum)
                 
         # Generate RGB colour from spectrum
         if (rgb == np.array((-1.0,-1.0,-1.0))).all():
@@ -397,6 +401,8 @@ class SpectraTask:
             spec_plot, fig, ax = self.plot(broad_spectrum,fig,ax,rgb,label=plotlabel,linestyle=linestyle)
         else:
             spec_plot = None
+        filename = f"abs_spec_{self.carved_suffix}.csv"
+        np.savetxt(filename, broad_spectrum, delimiter=',')
 
         return broad_spectrum,spec_plot,fig,ax,all_transition_origins,stick_spectrum
 

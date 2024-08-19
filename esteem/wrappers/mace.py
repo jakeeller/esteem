@@ -152,6 +152,7 @@ class MACEWrapper():
         if isinstance(suffix,dict) or isinstance(target,list):
             self.calc = []
         suffixes = suffix if isinstance(suffix,dict) else {suffix:self.train_args['seed']}
+        print(suffixes)
         targets = calctarget if isinstance(calctarget,list) else [calctarget]
         for suff in suffixes:
             for targ in targets:

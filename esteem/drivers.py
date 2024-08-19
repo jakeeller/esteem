@@ -241,6 +241,7 @@ def solutes_driver(all_solutes,all_solvents,task):
         calculation will be written
     """
 
+    print('drivers = ', task.triplets)
     base_path = path.basename(getcwd())
     if task.directory is not None and base_path != task.directory:
         if not path.exists(task.directory):
@@ -1088,6 +1089,7 @@ def mltrain_driver(mltrain_task,all_solutes={},all_solvents={}):
                 target=mltrain_task.target,
                 prefix=mltrain_task.calc_prefix,
                 suffix=mltrain_task.calc_dir_suffix)
+    print(train_dir)
     solu,solv = get_solu_solv_names(mltrain_task.seed)
     
     # Determine location of xyz files
@@ -1249,6 +1251,7 @@ def mltest_driver(mltest,all_solutes,all_solvents):
                     traj_links = [mltest.traj_links[traj]]
 
                 # Loop over the list made above
+                print('traj_links =', traj_links)
                 for traj_link in traj_links:
 
                     # Check if the traj_link string contains "{solu}" or "{solv}", in
@@ -1420,7 +1423,7 @@ def mltraj_cleanup(mltraj):
     from esteem.trajectories import get_trajectory_list,targstr
 
     ct = ClustersTask()
-    ct.repeat_without_solute = True if mltraj.corr_traj else False
+    ct.repeat_without_solute = mltraj.corr_traj if mltraj.corr_traj else False
     ct.solute,ct.solvent = get_solu_solv_names(mltraj.seed)
     ct.which_target = mltraj.target
     for ct.which_traj in mltraj.which_trajs:
