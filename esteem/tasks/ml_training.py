@@ -84,7 +84,7 @@ class MLTrainingTask:
             else:
                 rand_seed = 123
         for prefix in prefs:
-            if False: #'diff' in self.target:
+            if 'diff' in self.target:
                 which_trajs, trajnames = self.get_trajnames(prefix)
                 itarget = 0
                 jtarget = 1
