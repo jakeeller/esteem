@@ -472,7 +472,7 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
     return new_test_tasks
 
 from esteem.tasks.spectra import SpectraTask
-def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,meth,ntraj,traj_suffix='specdyn_recalc',corr_traj=False):
+def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,meth,ntraj,traj_suffix='specdyn_recalc',corr_traj=False,task_suffix=None):
     """
     Returns a dictionary of Spectra tasks, based on an input prototype task supplied by
     the user, for all the required Spectra tasks for an Active Learning task.
@@ -480,6 +480,7 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
     Takes lists of calculators, targets, random seeds
     """
     new_spectra_tasks = {}
+    task_suffix = traj_suffix if task_suffix is None else task_suffix
     # Loop over target states
     for target in targets:
         targstr = targets[target]
@@ -497,7 +498,7 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
                 spectra_task.wrapper.rootname = f'{{solu}}_{{solv}}_{targstr}_spec'
                 spectra_task.wrapper.input_filename = f'{{solu}}_{{solv}}_{targstr}_spec_input'
             spectra_task.exc_suffix = f'{targstr}_{meth}{pref(t)}_mldyn'
-            spectra_task.output = f'{{solu}}_{{solv}}_{targstr}_{meth}{t}_spectrum.png'
+            spectra_task.output = f'{{solu}}_{{solv}}_{targstr}_{meth}{t}_{task_suffix}.png'
             tdir = '.'
             rslist = list(rand_seed) # ['a','b','c'...]
             # Loop over trajectories to process
@@ -511,7 +512,7 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
                                            f"{tdir}/{{solu}}_{{solv}}_{targstrp}_{w}_{meth}{t}{rs}_{traj_suffix}_nosolu.traj"])
             spectra_task.trajectory = all_trajs
             spectra_task.correction_trajectory = all_corr_trajs
-            new_spectra_tasks[f'{targstr}_{meth}{t}_{traj_suffix}'] = deepcopy(spectra_task)
+            new_spectra_tasks[f'{targstr}_{meth}{t}_{task_suffix}'] = deepcopy(spectra_task)
             
     return new_spectra_tasks
 

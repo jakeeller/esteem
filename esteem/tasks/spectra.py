@@ -149,7 +149,7 @@ class SpectraTask:
                                 e1 = e1[-1]
                                 if corr_traj[0] is not None and (isinstance(e1c,list) or isinstance(e1c,np.ndarray)):
                                     e1c = e1c[-1]
-                            ediff = e1 - e0 + e1c - e0c
+                            ediff = e1 - e0 - e1c + e0c
                             # Swap sign of energy difference, if emission calculation is requested
                             if self.mode=='emission':
                                 ediff = -ediff
@@ -247,6 +247,8 @@ class SpectraTask:
             self.wrapper.add_model_data(model_targ)
             self.wrapper.write_xml()
             self.wrapper.run()
+        else:
+            print('# Skipping vibration wrapper spectrum recalculation, results exist')
         vib_sticks = self.wrapper.read()
         if vib_sticks is not None:
             if vib_sticks.shape == (0,):
@@ -338,6 +340,8 @@ class SpectraTask:
             if not self.wrapper.results_exist():
                 self.wrapper.write_input_file()
                 self.wrapper.run()
+            else:
+                print('# Skipping recalculation, wrapper results exist')
             broad_spectrum = self.wrapper.read()
         
         else:
