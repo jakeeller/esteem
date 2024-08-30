@@ -517,7 +517,7 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
     return new_spectra_tasks
 
 
-def setup_scripts(scriptname,seed,targstr,num_calcs,calc_suffix,method,script_settings,make_sbatch,allseed=None):
+def setup_scripts(scriptname,seed,targstr,num_calcs,calc_suffix,method,script_settings,make_sbatch,allseed=None,task_list=None):
 
     # Store original contents of declarations section
     store_decs = script_settings['declarations']
@@ -541,8 +541,10 @@ export SLURM_ARRAY_TASK_ID=$YP
 echo "X="$X "YP="$YP
     '''
 
+    if task_list is None:
+        task_list = ['mltrain','mltraj','mltest','mlfinaltest','specdyn','spectra','cumul_spectra']
     # Write job script for submission to HPC cluster
-    for task in ['mltrain','mltraj','mltest','mlfinaltest','specdyn','spectra']:
+    for task in task_list:
         # Set up default target and task name
         script_settings['target'] = '$T"_"$W"ac"$X$M$Y'
         script_task = task
@@ -554,6 +556,9 @@ echo "X="$X "YP="$YP
             script_task = 'mltraj'
         if task=="spectra":
             script_settings['target'] = '$T"_"$W"ac"$X$M"_specdyn_recalc_carved"'
+        if task=="cumul_spectra":
+            script_settings['target'] = '$T"_"$W"ac"$X$M"_specpycode"'
+            script_task = "spectra"
         if task=="mlfinaltest":
             script_settings['target'] += '"_mltraj_"$W"ac2"$M' 
             script_task = 'mltest'
