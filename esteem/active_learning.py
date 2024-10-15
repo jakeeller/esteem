@@ -202,7 +202,7 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
                     if passed[target1] > 26:
                         print('# Warning: more than 26 input trajectories for this target')
                         print('# Please ensure no overlap with other targets:')
-                        #print(task.which_trajs)
+                        print(task.which_trajs)
 
 def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,meth,truth,only_gen=None):
     """
