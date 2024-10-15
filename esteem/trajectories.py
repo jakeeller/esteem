@@ -820,7 +820,6 @@ def diff_traj(gstrajfile,es1trajfile,outtrajfile):
     Takes two trajectory filenames and finds the energy and force difference between
     them, outputting the result to a trajectory name outtrajfile
     """
-
     outtraj = Trajectory(outtrajfile,'w')
     gstraj = Trajectory(gstrajfile)
     es1traj = Trajectory(es1trajfile)
