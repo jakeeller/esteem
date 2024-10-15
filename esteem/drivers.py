@@ -1014,9 +1014,7 @@ def make_traj_links(mltrain_task,traj_links,train_dir,prefix,all_solutes,all_sol
     chdir(train_dir)
 
     # obtain a list of the trajectories to be used in the training
-    #print(f"prefix = {prefix}", flush=True)
     which_trajs,trajnames = mltrain_task.get_trajnames(prefix)
-    #print(which_trajs)
     trajnames = dict(zip(which_trajs,trajnames))
     if prefix == "":
         print(f'# Creating symlinks to training trajectories')
@@ -1037,7 +1035,6 @@ def make_traj_links(mltrain_task,traj_links,train_dir,prefix,all_solutes,all_sol
             traj_links_list = [traj_links[traj]]
         # Loop over the list made above
         for traj_link in traj_links_list:
-            #print(traj_link)
             # Check if the traj_link string contains "{solu}" or "{solv}", in
             # which case replace these with the appropriate solvent or solute string
             traj_link = sub_solu_solv_names(traj_link,mltrain_task.seed,all_solutes,all_solvents)
@@ -1053,7 +1050,6 @@ def make_traj_links(mltrain_task,traj_links,train_dir,prefix,all_solutes,all_sol
             if not path.isfile('../'+traj_link) and not path.islink('../'+traj_link):
                 raise Exception(f'# File to link to not found for trajectory {traj}: {traj_link}')
             if path.islink('../'+trajnames[traj]):
-                #print(f'../{trajnames[traj]}')
                 if (readlink('../'+trajnames[traj])!='../'+traj_link):
                     currlink=readlink('../'+trajnames[traj])
                     print(f'# Removing pre-existing link from ../{trajnames[traj]} to {currlink}')
@@ -1148,8 +1144,6 @@ def mltrain_driver(mltrain_task,all_solutes={},all_solvents={},setup_only=False)
         mltrain_task.calc_prefix = train_dir+"/"
     
     # Process any traj_links present in the input task
-    #print(f'train_dir = {train_dir}')
-    #print(mltrain_task.which_trajs)
     make_traj_links(mltrain_task,mltrain_task.traj_links,train_dir,'',all_solutes,all_solvents)
     if mltrain_task.traj_links_valid is not None:
         make_traj_links(mltrain_task,mltrain_task.traj_links_valid,train_dir,'valid',all_solutes,all_solvents)
