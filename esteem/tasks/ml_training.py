@@ -40,6 +40,7 @@ class MLTrainingTask:
         if which_trajs is None:
             which_trajs = all_trajs
         else:
+            #print(which_trajs)
             for trajname in which_trajs:
                 if trajname not in all_trajs:
                     raise Exception("Invalid trajectory name: ",trajname)
@@ -84,7 +85,7 @@ class MLTrainingTask:
             else:
                 rand_seed = 123
         for prefix in prefs:
-            if 'diff' in self.target:
+            if False:#'diff' in self.target:
                 which_trajs, trajnames = self.get_trajnames(prefix)
                 itarget = 0
                 jtarget = 1

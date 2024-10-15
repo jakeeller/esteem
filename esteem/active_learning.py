@@ -202,13 +202,14 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
                     if passed[target1] > 26:
                         print('# Warning: more than 26 input trajectories for this target')
                         print('# Please ensure no overlap with other targets:')
-                        print(task.which_trajs)
+                        #print(task.which_trajs)
 
 def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,meth,truth,only_gen=None):
     """
     Adds iterating trajectories
     """
     from esteem.tasks.ml_testing import MLTestingTask
+    
     gen = get_gen_from_calc(calc)
     genstart = 0
     genend = gen
@@ -237,8 +238,17 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
     # Loop over generations prior to current
     for g in range(genstart,genend):
         calcp = f'{pref(calc)}{g}{calc[-1]}'
-        # Use fixed traj_suffix along the lines of "orca_ac9ra" currently - perhaps make templatable?
+        # Use fixed traj_suffix along the lines of "orca_ac0u" currently - perhaps make templatable?
         traj_suffix = f'{truth}_{suff(calcp)}'
+        if isinstance(iter_dir_suffixes,list):
+            iter_dir_suffixes_dict = {traj_suffix: dir_suffix for dir_suffix in iter_dir_suffixes}
+        else:
+            iter_dir_suffixes_dict = {}
+            for traj_suffix in iter_dir_suffixes:
+                traj_suffix_new = f'{truth}_{suff(calcp)}'
+                if traj_suffix is not None and traj_suffix!="":
+                    traj_suffix_new = f'{traj_suffix_new}_{traj_suffix}'
+                iter_dir_suffixes_dict[traj_suffix_new] = iter_dir_suffixes[traj_suffix]
         # Find character for generation: ''=0, 'A'=1, 'B'=2 etc
         gen_char = chr(ord('A')-1+g) if g>0 else ''
         # Loop over all targets for source trajectories
@@ -248,14 +258,22 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
             #    continue
             targstrp = targets[targetp]
             # Loop over all dir suffixes and seeds
-            for dir_suffix in iter_dir_suffixes:
+            for traj_suffix in iter_dir_suffixes_dict:
+                ids_value = iter_dir_suffixes_dict[traj_suffix]
+                if isinstance(ids_value,tuple):
+                    dir_suffix, traj_seeds = ids_value[0:2]
+                else:
+                    dir_suffix = ids_value
+                    traj_seeds = seeds
                 # handle case where seeds is a dictionary, and keys are target,suffix tuples
-                #if (isinstance(seeds,dict)):
-                #   seeds_list = seeds[targstr1,dir_suffix]
-                #else:
-                #seeds_list = seeds
+                if (isinstance(traj_seeds,dict)):
+                   seeds_list = [traj_seeds[targstr]]
+                elif (isinstance(traj_seeds,list)):
+                   seeds_list = traj_seeds
+                else:
+                   seeds_list = [traj_seeds]
                 # Loop over seeds
-                for seed in seeds:
+                for seed in seeds_list:
                     # temporary hack - will need a better way to skip this
                     if (seed=='{solv}_{solv}' and targstrp!='gs'):
                         continue
