@@ -202,13 +202,14 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
                     if passed[target1] > 26:
                         print('# Warning: more than 26 input trajectories for this target')
                         print('# Please ensure no overlap with other targets:')
-                        print(task.which_trajs)
+                        #print(task.which_trajs)
 
 def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,meth,truth,only_gen=None):
     """
     Adds iterating trajectories
     """
     from esteem.tasks.ml_testing import MLTestingTask
+    
     gen = get_gen_from_calc(calc)
     genstart = 0
     genend = gen
@@ -237,8 +238,17 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
     # Loop over generations prior to current
     for g in range(genstart,genend):
         calcp = f'{pref(calc)}{g}{calc[-1]}'
-        # Use fixed traj_suffix along the lines of "orca_ac9ra" currently - perhaps make templatable?
+        # Use fixed traj_suffix along the lines of "orca_ac0u" currently - perhaps make templatable?
         traj_suffix = f'{truth}_{suff(calcp)}'
+        if isinstance(iter_dir_suffixes,list):
+            iter_dir_suffixes_dict = {traj_suffix: dir_suffix for dir_suffix in iter_dir_suffixes}
+        else:
+            iter_dir_suffixes_dict = {}
+            for traj_suffix in iter_dir_suffixes:
+                traj_suffix_new = f'{truth}_{suff(calcp)}'
+                if traj_suffix is not None and traj_suffix!="":
+                    traj_suffix_new = f'{traj_suffix_new}_{traj_suffix}'
+                iter_dir_suffixes_dict[traj_suffix_new] = iter_dir_suffixes[traj_suffix]
         # Find character for generation: ''=0, 'A'=1, 'B'=2 etc
         gen_char = chr(ord('A')-1+g) if g>0 else ''
         # Loop over all targets for source trajectories
@@ -248,14 +258,22 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
             #    continue
             targstrp = targets[targetp]
             # Loop over all dir suffixes and seeds
-            for dir_suffix in iter_dir_suffixes:
+            for traj_suffix in iter_dir_suffixes_dict:
+                ids_value = iter_dir_suffixes_dict[traj_suffix]
+                if isinstance(ids_value,tuple):
+                    dir_suffix, traj_seeds = ids_value[0:2]
+                else:
+                    dir_suffix = ids_value
+                    traj_seeds = seeds
                 # handle case where seeds is a dictionary, and keys are target,suffix tuples
-                #if (isinstance(seeds,dict)):
-                #   seeds_list = seeds[targstr1,dir_suffix]
-                #else:
-                #seeds_list = seeds
+                if (isinstance(traj_seeds,dict)):
+                   seeds_list = [traj_seeds[targstr]]
+                elif (isinstance(traj_seeds,list)):
+                   seeds_list = traj_seeds
+                else:
+                   seeds_list = [traj_seeds]
                 # Loop over seeds
-                for seed in seeds:
+                for seed in seeds_list:
                     # temporary hack - will need a better way to skip this
                     if (seed=='{solv}_{solv}' and targstrp!='gs'):
                         continue
@@ -472,7 +490,7 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
     return new_test_tasks
 
 from esteem.tasks.spectra import SpectraTask
-def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,meth,ntraj,traj_suffix='specdyn_recalc',corr_traj=False):
+def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,meth,ntraj,traj_suffix='specdyn_recalc',corr_traj=False,task_suffix=None):
     """
     Returns a dictionary of Spectra tasks, based on an input prototype task supplied by
     the user, for all the required Spectra tasks for an Active Learning task.
@@ -480,6 +498,7 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
     Takes lists of calculators, targets, random seeds
     """
     new_spectra_tasks = {}
+    task_suffix = traj_suffix if task_suffix is None else task_suffix
     # Loop over target states
     for target in targets:
         targstr = targets[target]
@@ -497,7 +516,7 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
                 spectra_task.wrapper.rootname = f'{{solu}}_{{solv}}_{targstr}_spec'
                 spectra_task.wrapper.input_filename = f'{{solu}}_{{solv}}_{targstr}_spec_input'
             spectra_task.exc_suffix = f'{targstr}_{meth}{pref(t)}_mldyn'
-            spectra_task.output = f'{{solu}}_{{solv}}_{targstr}_{meth}{t}_spectrum.png'
+            spectra_task.output = f'{{solu}}_{{solv}}_{targstr}_{meth}{t}_{task_suffix}.png'
             tdir = '.'
             rslist = list(rand_seed) # ['a','b','c'...]
             # Loop over trajectories to process
@@ -511,12 +530,12 @@ def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,
                                            f"{tdir}/{{solu}}_{{solv}}_{targstrp}_{w}_{meth}{t}{rs}_{traj_suffix}_nosolu.traj"])
             spectra_task.trajectory = all_trajs
             spectra_task.correction_trajectory = all_corr_trajs
-            new_spectra_tasks[f'{targstr}_{meth}{t}_{traj_suffix}'] = deepcopy(spectra_task)
+            new_spectra_tasks[f'{targstr}_{meth}{t}_{task_suffix}'] = deepcopy(spectra_task)
             
     return new_spectra_tasks
 
 
-def setup_scripts(scriptname,seed,targstr,num_calcs,calc_suffix,method,script_settings,make_sbatch,allseed=None):
+def setup_scripts(scriptname,seed,targstr,num_calcs,calc_suffix,method,script_settings,make_sbatch,allseed=None,task_list=None):
 
     # Store original contents of declarations section
     store_decs = script_settings['declarations']
@@ -540,8 +559,10 @@ export SLURM_ARRAY_TASK_ID=$YP
 echo "X="$X "YP="$YP
     '''
 
+    if task_list is None:
+        task_list = ['mltrain','mltraj','mltest','mlfinaltest','specdyn','spectra','cumul_spectra']
     # Write job script for submission to HPC cluster
-    for task in ['mltrain','mltraj','mltest','mlfinaltest','specdyn','spectra']:
+    for task in task_list:
         # Set up default target and task name
         script_settings['target'] = '$T"_"$W"ac"$X$M$Y'
         script_task = task
@@ -553,6 +574,9 @@ echo "X="$X "YP="$YP
             script_task = 'mltraj'
         if task=="spectra":
             script_settings['target'] = '$T"_"$W"ac"$X$M"_specdyn_recalc_carved"'
+        if task=="cumul_spectra":
+            script_settings['target'] = '$T"_"$W"ac"$X$M"_specpycode"'
+            script_task = "spectra"
         if task=="mlfinaltest":
             script_settings['target'] += '"_mltraj_"$W"ac2"$M' 
             script_task = 'mltest'
