@@ -12,22 +12,17 @@ class MACEWrapper():
     """
 
     from mace import tools
-    default_train_args = vars(tools.build_default_arg_parser().parse_args(["--name","dummy","--train_file","train.xyz"]))
+    default_train_args = tools.build_default_arg_parser().parse_args(["--name","dummy","--train_file","train.xyz"])
     
     def __init__(self,**kwargs):
         """Sets up instance attributes for MACEWrapper """
         from copy import deepcopy
         self.train_args = deepcopy(self.default_train_args)
-        self.train_args['max_num_epochs'] = -1
-        self.train_args['model'] = 'EnergyDipolesMACE'
-        self.train_args['loss'] = 'energy_forces_dipole'
-        self.train_args['error_table'] = 'EnergyDipoleRMSE'
-        self.train_args['restart_latest'] = True
-
-        # Allow overrides for this instance of the class
-        for kw in self.train_args:
-            if kw in kwargs:
-                self.train_args[kw] = kwargs[kw]
+        self.train_args.max_num_epochs = -1
+        self.train_args.model = 'EnergyDipolesMACE'
+        self.train_args.loss = 'energy_forces_dipole'
+        self.train_args.error_table = 'EnergyDipoleRMSE'
+        self.train_args.restart_latest = True
 
         # Make a set of default loading arguments by copying in training arguments
         self.load_args = {}
@@ -83,7 +78,7 @@ class MACEWrapper():
         calctarget = self.calc_params['target']
         if isinstance(suffix,dict) or isinstance(target,list):
             self.calc = []
-        suffixes = suffix if isinstance(suffix,dict) else {suffix:self.train_args['seed']}
+        suffixes = suffix if isinstance(suffix,dict) else {suffix:self.train_args.seed}
         targets = calctarget if isinstance(calctarget,list) else [calctarget]
         for suff in suffixes:
             for targ in targets:
@@ -171,9 +166,6 @@ class MACEWrapper():
         from copy import deepcopy
         import os
         train_args = deepcopy(self.train_args)
-        for kw in train_args:
-            if kw in kwargs:
-                train_args[kw] = kwargs[kw]
 
         # Check if training already complete
         calcfn = self.calc_filename(seed,target,prefix="",suffix=suffix)
@@ -187,7 +179,7 @@ class MACEWrapper():
                 finished_model = modelfile
             else:
                 checkpoints_dir=f"{dirname}/checkpoints"
-                modelfile = f"{checkpoints_dir}/{calcfn}_run-{train_args['seed']}.model"
+                modelfile = f"{checkpoints_dir}/{calcfn}_run-{train_args.seed}.model"
                 if path.exists(modelfile):
                     finished_model = modelfile
         if finished_model is not None:
@@ -200,8 +192,8 @@ class MACEWrapper():
         if validfile is not None:
             convtrajfile['valid'] = validfile
         else: # assume we want to use a validation fraction of 5%
-            del train_args['valid_file']
-            train_args['valid_fraction'] = 0.05
+            del train_args.valid_file
+            train_args.valid_fraction = 0.05
         if testfile is not None:
             convtrajfile['test'] = testfile
         for key in convtrajfile:
@@ -211,12 +203,12 @@ class MACEWrapper():
             extxyzfile, ntraj = self.traj_to_extxyz(trajf,extxyzfile)
             print(f'# Wrote {ntraj} frames to {extxyzfile} in extxyz format')
             extxyzfile = self.calc_filename(seed,target,prefix="",suffix=suffix)+f"_{key}.xyz"
-            train_args[f'{key}_file'] = extxyzfile
+            setattr(train_args,f'{key}_file',extxyzfile)
             if key=='train':
                 if 'test' not in convtrajfile:
-                    train_args['test_file'] = extxyzfile
-                if self.train_args['max_num_epochs']<0:
-                    train_args['max_num_epochs'] = int(round(200000*train_args['batch_size']/ntraj/50)*50)
+                    train_args.test_file = extxyzfile
+                if self.train_args.max_num_epochs<0:
+                    train_args.max_num_epochs = int(round(200000*train_args.batch_size/ntraj/50)*50)
         
         # Open atom_traj
         from ase.io import Trajectory
@@ -227,8 +219,8 @@ class MACEWrapper():
         os.chdir(dirname)
 
         # Set up input data
-        train_args['name'] = self.calc_filename(seed,target,prefix="",suffix=suffix)
-        train_args['device'] = 'cuda'
+        train_args.name = self.calc_filename(seed,target,prefix="",suffix=suffix)
+        train_args.device = 'cuda'
 
         # Calculate E0s from atom_traj
         from esteem.trajectories import atom_energies
@@ -238,25 +230,26 @@ class MACEWrapper():
         E0s = {}
         for sym in atom_en:
             E0s[atomic_numbers[sym]] = atom_en[sym]
-        train_args['E0s'] = E0s
+        train_args.E0s = str(E0s)
         
         # Some fixes to the input parameter list that prevent breakage
-        if train_args['start_swa'] is None:
-            train_args['start_swa'] = train_args['max_num_epochs'] // 4 * 3
-        for arg in ['num_channels','max_L']:
+        if train_args.start_swa is None:
+            train_args.start_swa = train_args.max_num_epochs // 4 * 3
+        if False:
+         for arg in ['num_channels','max_L']:
             if arg in train_args:
                 if train_args[arg] is None:
                     del train_args[arg]
-        for arg in ['wandb_project','wandb_entity','wandb_name']:
+         for arg in ['wandb_project','wandb_entity','wandb_name']:
             if arg in train_args:
                 if train_args[arg]=="":
                     del train_args[arg]
-        if 'wandb_log_hypers' in train_args:
+         if 'wandb_log_hypers' in train_args:
             del train_args['wandb_log_hypers']
         #for arg in train_args:
         #    if train_args[arg] is False:
         #        print(arg)
-        for arg in ['save_cpu','restart_latest','keep_checkpoints','ema','swa','amsgrad',
+         for arg in ['save_cpu','restart_latest','keep_checkpoints','ema','swa','amsgrad',
                     'wandb','mean','std','distributed','save_all_checkpoints',
                     'foundation_model','foundation_model_readout','pair_repulsion',
                     'statistics_file','atomic_numbers','compute_polarizability']:
@@ -267,28 +260,19 @@ class MACEWrapper():
                     train_args[arg] = ""
 
         # Write config.txt
-        import sys
-        store_argv = sys.argv
         config_file = self.calc_filename(seed,target,prefix="",suffix=suffix)+'_config.txt'
         print(f'# Writing MACE configuration to {config_file}')
         with open(config_file,"w") as f:
-            for kw in train_args:
-                eq = '=' if train_args[kw]!="" else ""
-                f.write(f'--{kw}{eq}{train_args[kw]}\n')
-        #sys.argv = ['train.py',config_file]
+            for kw in train_args.__dict__:
+                eq = '=' if getattr(train_args,kw)!="" else ""
+                f.write(f'--{kw}{eq}{getattr(train_args,kw)}\n')
         
-        sys.argv = ['run_train.py']
-        for kw in train_args:
-            sys.argv.append(f'--{kw}');
-            if train_args[kw]!="":
-                sys.argv.append(f'{train_args[kw]}')
-        
-        extxyzfile = train_args[f'train_file']
+        extxyzfile = train_args.train_file
         print(f'# Training MACE model using trajectory {extxyzfile} with parameters:')
         print('#',train_args)
-        import scripts.run_train
-        scripts.run_train.main()
-        sys.argv = store_argv
+
+        from mace.cli import run_train
+        run_train.run(train_args)
         
         os.chdir(orig_dir)
     

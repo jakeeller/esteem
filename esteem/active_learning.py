@@ -319,9 +319,9 @@ def create_mltrain_tasks(train_task:MLTrainingTask,train_calcs,seeds,targets,ran
     """
 
     new_mltrain_tasks = {}
-    if 'max_num_epochs' in train_task.wrapper.train_args:
-        init_epochs = train_task.wrapper.train_args['max_num_epochs'] # MACE specific
-        swa_init_epochs = train_task.wrapper.train_args['start_swa']  # MACE specific
+    if hasattr(train_task.wrapper.train_args,'max_num_epochs'):
+        init_epochs = train_task.wrapper.train_args.max_num_epochs # MACE specific
+        swa_init_epochs = train_task.wrapper.train_args.start_swa  # MACE specific
         if swa_init_epochs is None:
             swa_init_epochs = 100000
 
@@ -346,17 +346,17 @@ def create_mltrain_tasks(train_task:MLTrainingTask,train_calcs,seeds,targets,ran
             # For generations > 0, we now add chosen subset trajectories for active learning
             add_iterating_trajectories(train_task,seeds,t,iter_dir_suffixes,targets,target,meth,truth)
             # extra epochs for each generation
-            if 'max_num_epochs' in train_task.wrapper.train_args:  # MACE specific
+            if hasattr(train_task.wrapper.train_args,'max_num_epochs'):  # MACE specific
                 gen = get_gen_from_calc(t)
                 if gen is not None:
-                    train_task.wrapper.train_args['max_num_epochs'] = init_epochs + gen*delta_epochs
+                    train_task.wrapper.train_args.max_num_epochs = init_epochs + gen*delta_epochs
                     # same number of extra epochs for SWA
-                    train_task.wrapper.train_args['start_swa'] = swa_init_epochs + gen*delta_epochs
+                    train_task.wrapper.train_args.start_swa = swa_init_epochs + gen*delta_epochs
             # Save this calculator to the list for each seed
             for rs in rand_seed:
                 # Seed-specific info
                 train_task.rand_seed = rand_seed[rs]
-                train_task.wrapper.train_args['seed'] = rand_seed[rs] # MACE specific
+                train_task.wrapper.train_args.seed = rand_seed[rs] # MACE specific
                 train_task.calc_suffix = f"{meth}{t}{rs}"
                 new_mltrain_tasks[targets[target]+'_'+train_task.calc_suffix] = deepcopy(train_task)
     return new_mltrain_tasks
@@ -387,7 +387,7 @@ def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,met
                 # Save a task for just using one calculator at a time
                 mltraj_task.snap_wrapper = None
                 taskname = f'{targstr}_{meth}{t}{rs}'
-                mltraj_task.wrapper.train_args['seed'] = rand_seed[rs]
+                mltraj_task.wrapper.train_args.seed = rand_seed[rs]
                 mltraj_task.calc_suffix = f'{meth}{t}{rs}'
                 if snap_wrapper is None:
                     mltraj_task.snap_calc_params = None
@@ -447,7 +447,7 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
             # For generations > 0, we now add chosen subset trajectories for active learning
             add_iterating_trajectories(test_task,seeds,t,iter_dir_suffixes,targets,target,meth,truth)
             for rs in rand_seed:
-                test_task.wrapper.train_args['seed'] = rand_seed[rs]
+                test_task.wrapper.train_args.seed = rand_seed[rs]
                 test_task.calc_suffix = f'{meth}{t}{rs}'
                 test_task.plotfile = f'{{solu}}_{{solv}}_{test_task.calc_suffix}.png'
                 # Store a test task for evaluating the success of the calculator on its training data
@@ -465,7 +465,7 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
                 only_gen = get_gen_from_calc(tp)
                 add_iterating_trajectories(test_task,seeds,t,iter_dir_suffixes,targets,target,meth,truth,only_gen=only_gen)
                 for rs in rand_seed:
-                    test_task.wrapper.train_args['seed'] = rand_seed[rs]
+                    test_task.wrapper.train_args.seed = rand_seed[rs]
                     test_task.calc_suffix = f'{meth}{t}{rs}'
                     test_task.plotfile = f'{{solu}}_{{solv}}_{test_task.calc_suffix}_mltraj_{meth}{tp}.png'
                     new_test_tasks[f"{targets[target]}_{meth}{t}{rs}_mltraj_{meth}{tp}"] = deepcopy(test_task)
