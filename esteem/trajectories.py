@@ -792,28 +792,25 @@ def merge_traj(trajnames,trajfile,trajfile_valid=None,valid_fraction=0.0,split_s
         print("# Merged ",len(fulltraj_valid)," frames: trajectory written to ",trajfile_valid)
         fulltraj_valid.close()
 
-
-# Difference of two trajectories (generated separately)
-def diff_traj(itrajfile,jtrajfile,outtrajfile):
+def diff_traj(gstrajfile,es1trajfile,outtrajfile):
     """
     Takes two trajectory filenames and finds the energy and force difference between
     them, outputting the result to a trajectory name outtrajfile
     """
-
     outtraj = Trajectory(outtrajfile,'w')
-    itraj = Trajectory(itrajfile)
-    jtraj = Trajectory(jtrajfile)
-    assert(len(itraj)==len(jtraj))
+    gstraj = Trajectory(gstrajfile)
+    es1traj = Trajectory(es1trajfile)
+    assert(len(gstraj)==len(es1traj))
 
-    for i in range(len(itraj)):
-        iframe = itraj[i].copy()
-        jframe = itraj[j].copy()
-        iframe.results["energy"] -= jframe.results["energy"]
-        iframe.results["forces"] -= jframe.results["forces"]
-        outtraj.write(iframe)
+    for i in range(len(gstraj)):
+        deltaE = es1traj[i].get_potential_energy()-gstraj[i].get_potential_energy()
+        deltaF = es1traj[i].get_forces() - gstraj[i].get_forces()
+        deltad = es1traj[i].get_dipole_moment() - gstraj[i].get_dipole_moment()
+        outtraj.write(gstraj[i], energy = deltaE, forces = deltaF, dipole=deltad)
 
-    print("# Took difference of energy and forces. ",len(outtraj)," frames: trajectory written to ",outtrajfile)
+    print("# Took difference of energy, forces and dipoles. ",len(outtraj)," frames: trajectory written to ",outtrajfile)
     outtraj.close()
+
 
 def split_traj(input_traj_file,output_trajs=None,ntrajs=None,randomise=False,start=0,end=-1):
     """

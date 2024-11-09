@@ -84,15 +84,15 @@ class MLTrainingTask:
             else:
                 rand_seed = 123
         for prefix in prefs:
-            if False: #'diff' in self.target:
-                which_trajs, trajnames = self.get_trajnames(prefix)
-                itarget = 0
-                jtarget = 1
-                for traj in trajnames:
-                    itraj = traj.replace("diff",targstr(itarget))
-                    jtraj = traj.replace("diff",targstr(jtarget))
-                    print('# Calling diff_traj with {itraj} {jtraj} {traj}')
-                    diff_traj(itraj,jtraj,traj)
+            #if 'diff' in self.target:
+               # which_trajs, trajnames = self.get_trajnames(prefix)
+                #itarget = 0
+                #jtarget = 1
+                #for traj in trajnames:
+                    #itraj = traj.replace("diff",targstr(itarget))
+                    #jtraj = traj.replace("diff",targstr(jtarget))
+                    #print('# Calling diff_traj with {itraj} {jtraj} {traj}')
+                    #diff_traj(itraj,jtraj,traj)
 
             # If all trajectories exist, merge them
             which_trajs, trajnames = self.get_trajnames(prefix)
