@@ -135,6 +135,9 @@ class MACEWrapper():
             del tp.calc.results['dipole']
             write_xyz(f,tp)
         f.close()
+        per_atom_properties.pop()
+        per_config_properties.pop()
+        per_config_properties.pop()
 
         return outfilename, len(traj)
    
