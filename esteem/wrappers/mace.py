@@ -120,9 +120,20 @@ class MACEWrapper():
 
         traj = Trajectory(trajfile)
         
-        from ase.io.extxyz import write_xyz
+        from ase.io.extxyz import write_xyz, per_atom_properties, per_config_properties
+        per_config_properties += ['REF_energy','REF_dipole']
+        per_atom_properties += ['REF_forces']
         f=open(outfilename,"w")
-        write_xyz(f,traj)
+        for t in traj:
+            tp = t.copy()
+            tp.calc = t.calc
+            tp.calc.results['REF_energy'] = tp.calc.results['energy']
+            tp.calc.results['REF_forces'] = tp.calc.results['forces']
+            tp.calc.results['REF_dipole'] = tp.calc.results['dipole']
+            del tp.calc.results['energy']
+            del tp.calc.results['forces']
+            del tp.calc.results['dipole']
+            write_xyz(f,tp)
         f.close()
 
         return outfilename, len(traj)
