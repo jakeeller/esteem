@@ -46,6 +46,8 @@ class MACEWrapper():
         else:
             if target is None or target == 0:
                 calcfn = seed+"_gs_"+suffix
+            elif target == "diff":
+                calcfn = seed+"_diff_"+suffix
             else:
                 calcfn = seed+"_es"+str(target)+"_"+suffix
             
@@ -254,8 +256,12 @@ class MACEWrapper():
         for sym in atom_en:
             E0s[atomic_numbers[sym]] = atom_en[sym]
         if heads is not None:
-            for target in heads:
-                heads[target]['E0s'] = str(E0s)
+            for target in targets:
+                targetstr = targets[target]
+                if target!='diff':
+                    heads[targetstr]['E0s'] = str(E0s)
+                else:
+                    heads[targetstr] = str({Z:0 for Z in E0s})
         else:
             train_args.E0s = str(E0s)
 
