@@ -1014,7 +1014,7 @@ def make_traj_links(mltrain_task,traj_links,train_dir,prefix,all_solutes,all_sol
     chdir(train_dir)
 
     # obtain a list of the trajectories to be used in the training
-    which_trajs,trajnames = mltrain_task.get_trajnames(prefix)
+    which_trajs,which_targets,trajnames = mltrain_task.get_trajnames(prefix)
     trajnames = dict(zip(which_trajs,trajnames))
     if prefix == "":
         print(f'# Creating symlinks to training trajectories')

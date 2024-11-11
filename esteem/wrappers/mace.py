@@ -36,10 +36,16 @@ class MACEWrapper():
         self.output = "mace"
 
     def calc_filename(self,seed,target,prefix='',suffix=''):
-        if target is None or target == 0:
-            calcfn = seed+"_gs_"+suffix
+        if isinstance(target,dict):
+            calcfn = seed+"_"
+            for targ in target:
+                calcfn += "es"+str(targ) if targ!=0 else "gs"
+            calcfn += "_"+suffix
         else:
-            calcfn = seed+"_es"+str(target)+"_"+suffix
+            if target is None or target == 0:
+                calcfn = seed+"_gs_"+suffix
+            else:
+                calcfn = seed+"_es"+str(target)+"_"+suffix
             
         calcfn = prefix + calcfn
             
@@ -138,7 +144,7 @@ class MACEWrapper():
         label = self.calc_filename(seed,target,prefix="",suffix=suffix)
         
     def train(self,seed,prefix="",suffix="",dir_suffix="",trajfile="",validfile=None,testfile=None,
-              target=None,restart=False,**kwargs):
+              targets_in=None,restart=False,**kwargs):
         """
         Runs training for MACE model using an input trajectory as training points
 
@@ -160,7 +166,7 @@ class MACEWrapper():
 
         # Not sensible to try training in other directory than current, so prefix is
         # suppressed here but used elsewhere (eg for retrieving trajs)
-        dirname = self.calc_filename(seed,target,prefix="",suffix=dir_suffix)
+        dirname = self.calc_filename(seed,targets_in,prefix="",suffix=dir_suffix)
 
         # Sort out optional arguments to see if any overrides to defaults have been supplied
         from copy import deepcopy
@@ -168,7 +174,7 @@ class MACEWrapper():
         train_args = deepcopy(self.train_args)
 
         # Check if training already complete
-        calcfn = self.calc_filename(seed,target,prefix="",suffix=suffix)
+        calcfn = self.calc_filename(seed,targets_in,prefix="",suffix=suffix)
         finished_model = None
         modelfile = f"{dirname}/{calcfn}_swa.model"
         if path.exists(modelfile):
@@ -187,28 +193,47 @@ class MACEWrapper():
             print(f'# Delete this if training is intended to be restarted / extended')
             return
 
+        if not isinstance(targets_in,dict):
+            # if we supplied a single target, convert to a dictionary
+            targets = {targets_in:str(targets_in)}
+            heads = None
+        else:
+            # if we supplied multiple targets set up heads dictionary
+            targets = targets_in
+            heads = {}
+            for target in targets:
+                targetstr = targets[target]
+                heads[targetstr] = {}
+
         # Convert trajectories from .traj to .xyz format
         convtrajfile = {'train':trajfile}
         if validfile is not None:
             convtrajfile['valid'] = validfile
         else: # assume we want to use a validation fraction of 5%
             del train_args.valid_file
-            train_args.valid_fraction = 0.05
+            if not hasattr(train_args,'valid_fraction'):
+                train_args.valid_fraction = 0.05
         if testfile is not None:
             convtrajfile['test'] = testfile
         for key in convtrajfile:
-            trajf = convtrajfile[key]
-            print(f'# Converting trajectory {trajf} to extxyz format as {key} file')
-            extxyzfile = self.calc_filename(seed,target,prefix=dirname+"/",suffix=suffix)+f"_{key}.xyz"
-            extxyzfile, ntraj = self.traj_to_extxyz(trajf,extxyzfile)
-            print(f'# Wrote {ntraj} frames to {extxyzfile} in extxyz format')
-            extxyzfile = self.calc_filename(seed,target,prefix="",suffix=suffix)+f"_{key}.xyz"
-            setattr(train_args,f'{key}_file',extxyzfile)
-            if key=='train':
-                if 'test' not in convtrajfile:
-                    train_args.test_file = extxyzfile
-                if self.train_args.max_num_epochs<0:
-                    train_args.max_num_epochs = int(round(200000*train_args.batch_size/ntraj/50)*50)
+            trajfile_dict = convtrajfile[key]
+            for target in targets:
+                targetstr = targets[target]
+                trajf = trajfile_dict[targetstr]
+                print(f'# Converting trajectory {trajf} to extxyz format as {key} file for target {targetstr}')
+                extxyzfile = self.calc_filename(seed,target,prefix=dirname+"/",suffix=suffix)+f"_{key}.xyz"
+                extxyzfile, ntraj = self.traj_to_extxyz(trajf,extxyzfile)
+                print(f'# Wrote {ntraj} frames to {extxyzfile} in extxyz format')
+                extxyzfile = self.calc_filename(seed,target,prefix="",suffix=suffix)+f"_{key}.xyz"
+                if heads is not None:
+                    heads[targetstr][f'{key}_file'] = extxyzfile
+                else:
+                    setattr(train_args,f'{key}_file',extxyzfile)
+                if key=='train':
+                    if 'test' not in convtrajfile:
+                        train_args.test_file = extxyzfile
+                    if self.train_args.max_num_epochs<0:
+                        train_args.max_num_epochs = int(round(200000*train_args.batch_size/ntraj/50)*50)
         
         # Open atom_traj
         from ase.io import Trajectory
@@ -218,10 +243,6 @@ class MACEWrapper():
         orig_dir = os.getcwd()
         os.chdir(dirname)
 
-        # Set up input data
-        train_args.name = self.calc_filename(seed,target,prefix="",suffix=suffix)
-        train_args.device = 'cuda'
-
         # Calculate E0s from atom_traj
         from esteem.trajectories import atom_energies
         from ase.data import atomic_numbers
@@ -230,34 +251,21 @@ class MACEWrapper():
         E0s = {}
         for sym in atom_en:
             E0s[atomic_numbers[sym]] = atom_en[sym]
-        train_args.E0s = str(E0s)
+        if heads is not None:
+            for target in heads:
+                heads[target]['E0s'] = str(E0s)
+        else:
+            train_args.E0s = str(E0s)
+
+        # Set up input data
+        train_args.name = self.calc_filename(seed,target,prefix="",suffix=suffix)
+        train_args.device = 'cuda'
+        train_args.heads = str(heads)
+        print('heads=',train_args.heads)
         
         # Some fixes to the input parameter list that prevent breakage
         if train_args.start_swa is None:
             train_args.start_swa = train_args.max_num_epochs // 4 * 3
-        if False:
-         for arg in ['num_channels','max_L']:
-            if arg in train_args:
-                if train_args[arg] is None:
-                    del train_args[arg]
-         for arg in ['wandb_project','wandb_entity','wandb_name']:
-            if arg in train_args:
-                if train_args[arg]=="":
-                    del train_args[arg]
-         if 'wandb_log_hypers' in train_args:
-            del train_args['wandb_log_hypers']
-        #for arg in train_args:
-        #    if train_args[arg] is False:
-        #        print(arg)
-         for arg in ['save_cpu','restart_latest','keep_checkpoints','ema','swa','amsgrad',
-                    'wandb','mean','std','distributed','save_all_checkpoints',
-                    'foundation_model','foundation_model_readout','pair_repulsion',
-                    'statistics_file','atomic_numbers','compute_polarizability']:
-            if arg in train_args:
-                if train_args[arg] is not True:
-                    del train_args[arg]
-                else:
-                    train_args[arg] = ""
 
         # Write config.txt
         config_file = self.calc_filename(seed,target,prefix="",suffix=suffix)+'_config.txt'

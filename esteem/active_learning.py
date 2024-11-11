@@ -15,6 +15,12 @@ pass to drivers.main()
 
 
 from esteem.trajectories import get_trajectory_list
+from esteem.tasks.clusters import ClustersTask
+from esteem.tasks.ml_training import MLTrainingTask
+from esteem.tasks.ml_trajectories import MLTrajTask
+from esteem.tasks.ml_testing import MLTestingTask
+from esteem.tasks.spectra import SpectraTask
+
 from copy import deepcopy
 
 # Mapping of trajectory labels to subset selection methods (can be overridden if needed)
@@ -47,7 +53,6 @@ def pref(calc):
 
 def suff(calc):
     return calc[4:]
-from esteem.tasks.clusters import ClustersTask
 
 def create_clusters_tasks(task:ClustersTask,train_calcs,seed,traj_suffix,md_suffix,
                           md_dir_suffix,targets,rand_seed,meth,truth,
@@ -144,6 +149,8 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
         # Make a list of the trajectories from this source
         for itarg1,target1 in enumerate(targets):
             targstr1 = targets[target1]
+            if isinstance(targstr1,dict):
+                continue
             offset = chr(ord('A')+itarg1-1) if itarg1>0 else ''
             if "qmd" in traj_suffix:
                 # For QMD trajectories, the trajectory name depends on the target
@@ -159,61 +166,65 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
             # Loop over seeds
             for seed in seeds_list:
                 all_keys = get_keys(task)
-                targstr2 = targstr
-                if seed=='{solv}_{solv}' and targstr2!='gs':
-                    targstr2 = 'gs'
-                for ikey,key in enumerate(all_keys):
-                    all_traj = get_trajectory_list(passed[target1]+ntraj[targstr1,traj_suffix])
-                    for itraj,traj in enumerate(all_traj[passed[target1]:]):
-                        trajsource = all_traj[itraj+ikey*ntraj[targstr1,traj_suffix]]
-                        traj_dest = f"{seed}_{dir_suffix}/{seed}_{targstr2}_{trajsource}_{fullsuffix}.traj"
-                        if key=='train':
-                            task.traj_links[offset+traj] = traj_dest
-                            #task.which_trajs += [offset+i for i in all_traj[passed[target1]:]]
-                            new_trajs = [offset+all_traj[passed[target1]:][itraj]]
-                            if isinstance(task.which_trajs,list):
-                                task.which_trajs += new_trajs
-                            else:
-                                task.which_trajs.update({jtraj:jtraj for jtraj in new_trajs})
-                                task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
-                            #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs} (seed={seed}, itarg1={itarg1}, itraj={itraj}, passed[{target1}]={passed[target1]}')
-                        elif key=='valid':
-                            task.traj_links_valid[offset+traj] = traj_dest
-                            #task.which_trajs_valid += [offset+i for i in all_traj[passed[target1]:]]
-                            new_trajs = [offset+all_traj[passed[target1]:][itraj]]
-                            if isinstance(task.which_trajs_valid,list):
-                                task.which_trajs_valid += new_trajs
-                            else:
-                                task.which_trajs_valid.update({jtraj:jtraj for jtraj in new_trajs})
-                                task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
-                            #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs_valid}')
-                        elif key=='test':
-                            task.traj_links_test[offset+traj] = traj_dest
-                            new_trajs = [offset+all_traj[passed[target1]:][itraj]]
-                            if isinstance(task.which_trajs_test,list):
-                                task.which_trajs_test += new_trajs
-                            else:
-                                task.which_trajs_test.update({jtraj:jtraj for jtraj in new_trajs})
-                                task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
-                            #task.which_trajs_test += [offset+i for i in all_traj[passed[target1]:]]
-                            #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs_test}')
-                    passed[target1] += ntraj[targstr1,traj_suffix]
-                    #print(f'passed[{target1}]={passed[target1]}')
-                    if passed[target1] > 26:
-                        print('# Warning: more than 26 input trajectories for this target')
-                        print('# Please ensure no overlap with other targets:')
-                        print(task.which_trajs)
+                targstr2_dict = targstr
+                if not isinstance(targstr2_dict,dict):
+                    targstr2_dict = {0: targstr2_dict}
+                for targstr2_key in targstr2_dict:
+                    targstr2 = targstr2_dict[targstr2_key]
+                    targstr2_orig = targstr2
+                    if seed=='{solv}_{solv}' and targstr2!='gs':
+                        targstr2 = 'gs'
+                    for ikey,key in enumerate(all_keys):
+                        all_traj = get_trajectory_list(passed[target1]+ntraj[targstr1,traj_suffix])
+                        for itraj,traj in enumerate(all_traj[passed[target1]:]):
+                            trajsource = all_traj[itraj+ikey*ntraj[targstr1,traj_suffix]]
+                            traj_dest = f"{seed}_{dir_suffix}/{seed}_{targstr2}_{trajsource}_{fullsuffix}.traj"
+                            if key=='train':
+                                task.traj_links[offset+traj] = traj_dest
+                                new_trajs = [offset+all_traj[passed[target1]:][itraj]]
+                                if isinstance(task.which_trajs,list):
+                                    task.which_trajs += new_trajs
+                                    task.which_targets += [targstr2_orig]
+                                else:
+                                    task.which_trajs.update({jtraj:jtraj for jtraj in new_trajs})
+                                    # TODO which_targets
+                                    task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
+                                #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs} (seed={seed}, itarg1={itarg1}, itraj={itraj}, passed[{target1}]={passed[target1]}')
+                            elif key=='valid':
+                                task.traj_links_valid[offset+traj] = traj_dest
+                                new_trajs = [offset+all_traj[passed[target1]:][itraj]]
+                                if isinstance(task.which_trajs_valid,list):
+                                    task.which_trajs_valid += new_trajs
+                                    task.which_targets_valid += [targstr2_orig]
+                                else:
+                                    task.which_trajs_valid.update({jtraj:jtraj for jtraj in new_trajs})
+                                    # TODO which_targets
+                                    task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
+                                #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs_valid}')
+                            elif key=='test':
+                                task.traj_links_test[offset+traj] = traj_dest
+                                new_trajs = [offset+all_traj[passed[target1]:][itraj]]
+                                if isinstance(task.which_trajs_test,list):
+                                    task.which_trajs_test += new_trajs
+                                else:
+                                    task.which_trajs_test.update({jtraj:jtraj for jtraj in new_trajs})
+                                    task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
+                                #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs_test}')
+                        passed[target1] += ntraj[targstr1,traj_suffix]
+                        if passed[target1] > 26:
+                            print('# Warning: more than 26 input trajectories for this target')
+                            print('# Please ensure no overlap with other targets:')
+                            print(task.which_trajs)
 
 def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,meth,truth,only_gen=None):
     """
     Adds iterating trajectories
     """
-    from esteem.tasks.ml_testing import MLTestingTask
     
     gen = get_gen_from_calc(calc)
     genstart = 0
     genend = gen
-    if type(task)==MLTestingTask and gen is not None:
+    if type(task) is MLTestingTask and gen is not None:
         if only_gen is not None:
             if only_gen==-1:
                 genstart = 0
@@ -232,7 +243,7 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
         last_static_traj_char = sorted(all_used_trajs)[-1]
     else:
         last_static_traj_char = chr(ord('A')-1)
-    if gen is None or (gen < 1 and type(task)!=MLTestingTask):
+    if gen is None or (gen < 1 and type(task) is not MLTestingTask):
         return
     targstr = targets[target]
     # Loop over generations prior to current
@@ -257,6 +268,8 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
             #if targetp > target:
             #    continue
             targstrp = targets[targetp]
+            if isinstance(targstrp,dict):
+                continue
             # Loop over all dir suffixes and seeds
             for traj_suffix in iter_dir_suffixes_dict:
                 ids_value = iter_dir_suffixes_dict[traj_suffix]
@@ -274,56 +287,64 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
                    seeds_list = [traj_seeds]
                 # Loop over seeds
                 for seed in seeds_list:
-                    # temporary hack - will need a better way to skip this
-                    if (seed=='{solv}_{solv}' and targstrp!='gs'):
-                        continue
-                    targstr2 = targstr
-                    if seed=='{solv}_{solv}' and targstr2!='gs':
-                        targstr2 = 'gs'
-                    all_keys = get_keys(task)
-                    for ikey,key in enumerate(all_keys):
-                        # First get the base character for this type of trajectory
-                        traj_type_char = get_traj_from_calc(calc)
-                        if (ikey==1):
-                            traj_type_char = 'Q'
-                        # Offset first available char by the number of previous trajectories passed
-                        traj_char = chr(ord(last_static_traj_char)+offset)
-                        # Find the directory and filename for this trajectory
-                        traj_link_dir = f"{seed}_{targstrp}_{meth}{pref(calcp)}_{dir_suffix}"
-                        traj_link_file = f"{seed}_{targstr2}_{traj_type_char}_{traj_suffix}.traj"
-                        # Add it to the list of links to make
-                        # and to the list of trajectory characters to link
-                        traj_dest = f"{traj_link_dir}/{traj_link_file}"
-                        if key=='train':
-                            task.traj_links[gen_char+traj_char] = traj_dest
-                            new_traj = f'{gen_char+traj_char}'
-                            if isinstance(task.which_trajs,list):
-                                task.which_trajs += [new_traj]
-                            else:
-                                task.which_trajs[new_traj] = new_traj
-                                task.ref_mol_seed_dict[new_traj] = seed
-                            #print(f'adding for {calc}: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs}')
-                        elif key=='valid':
-                            task.traj_links_valid[gen_char+traj_char] = traj_dest
-                            new_traj = f'{gen_char}{traj_char}'
-                            if isinstance(task.which_trajs_valid,list):
-                                task.which_trajs_valid += [new_traj]
-                            else:
-                                task.which_trajs_valid[new_traj] = new_traj
-                                task.ref_mol_seed_dict[new_traj] = seed
-                            #print(f'adding for {calc}: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_valid}')
-                        elif key=='test':
-                            task.traj_links_test[gen_char+traj_char] = traj_dest
-                            new_traj = f'{gen_char}{traj_char}'
-                            if isinstance(task.which_trajs_test,list):
-                                task.which_trajs_test += [new_traj]
-                            else:
-                                task.which_trajs_test[new_traj] = new_traj
-                                task.ref_mol_seed_dict[new_traj] = seed
-                            #print(f'adding: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_test}')
-                        offset = offset + 1
+                    targstr2_dict = targstr
+                    if not isinstance(targstr2_dict,dict):
+                        targstr2_dict = {0: targstr2_dict}
+                    for targstr2_key in targstr2_dict:
+                        targstr2 = targstr2_dict[targstr2_key]
+                        targstr2_orig = targstr2
+                        if seed=='{solv}_{solv}':
+                            if targstrp!='gs':
+                                continue
+                            if targstr2!='gs':
+                                targstr2 = 'gs'
+                        all_keys = get_keys(task)
+                        for ikey,key in enumerate(all_keys):
+                            # First get the base character for this type of trajectory
+                            traj_type_char = get_traj_from_calc(calc)
+                            if (ikey==1):
+                                traj_type_char = 'Q'
+                            # Offset first available char by the number of previous trajectories passed
+                            traj_char = chr(ord(last_static_traj_char)+offset)
+                            # Find the directory and filename for this trajectory
+                            traj_link_dir = f"{seed}_{targstrp}_{meth}{pref(calcp)}_{dir_suffix}"
+                            traj_link_file = f"{seed}_{targstr2}_{traj_type_char}_{traj_suffix}.traj"
+                            # Add it to the list of links to make
+                            # and to the list of trajectory characters to link
+                            traj_dest = f"{traj_link_dir}/{traj_link_file}"
+                            if key=='train':
+                                task.traj_links[gen_char+traj_char] = traj_dest
+                                new_traj = f'{gen_char+traj_char}'
+                                if isinstance(task.which_trajs,list):
+                                    task.which_trajs += [new_traj]
+                                    task.which_targets += [targstr2_orig]
+                                else:
+                                    task.which_trajs[new_traj] = new_traj
+                                    #task.which_targets[new_traj] += [targstr2_orig]
+                                    task.ref_mol_seed_dict[new_traj] = seed
+                                #print(f'adding for {calc}: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs}')
+                            elif key=='valid':
+                                task.traj_links_valid[gen_char+traj_char] = traj_dest
+                                new_traj = f'{gen_char}{traj_char}'
+                                if isinstance(task.which_trajs_valid,list):
+                                    task.which_trajs_valid += [new_traj]
+                                    task.which_targets_valid += [targstr2_orig]
+                                else:
+                                    task.which_trajs_valid[new_traj] = new_traj
+                                    #task.which_targets_valid[new_traj] += [targstr2_orig]
+                                    task.ref_mol_seed_dict[new_traj] = seed
+                                #print(f'adding for {calc}: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_valid}')
+                            elif key=='test':
+                                task.traj_links_test[gen_char+traj_char] = traj_dest
+                                new_traj = f'{gen_char}{traj_char}'
+                                if isinstance(task.which_trajs_test,list):
+                                    task.which_trajs_test += [new_traj]
+                                else:
+                                    task.which_trajs_test[new_traj] = new_traj
+                                    task.ref_mol_seed_dict[new_traj] = seed
+                                #print(f'adding: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_test}')
+                            offset = offset + 1
 
-from esteem.tasks.ml_training import MLTrainingTask
 def create_mltrain_tasks(train_task:MLTrainingTask,train_calcs,seeds,targets,rand_seed,meth,truth,
                          traj_suffixes=[],dir_suffixes={},ntraj={},
                          iter_dir_suffixes=[],delta_epochs=200,separate_valid=False):
@@ -347,18 +368,24 @@ def create_mltrain_tasks(train_task:MLTrainingTask,train_calcs,seeds,targets,ran
         for t in train_calcs:
             # Calculator basic info
             train_task.traj_suffix = truth
-            train_task.target = target
+            if isinstance(targets[target],dict):
+                train_task.target = targets[target]
+            else:
+                train_task.target = target
             train_task.calc_dir_suffix = f"{meth}{pref(t)}"
             train_task.calc_prefix = ""
             # Set up links to trajectories - first empty the lists
             train_task.traj_links = {}
             train_task.which_trajs = []
+            train_task.which_targets = []
             if separate_valid:
                 train_task.traj_links_valid = {}
                 train_task.which_trajs_valid = []
+                train_task.which_targets_valid = []
             else:
                 train_task.traj_links_valid = None
                 train_task.which_trajs_valid = None
+                train_task.which_targets_valid = None
             # Then add "static" configurations, that do not increase with AL generation
             add_trajectories(train_task,seeds,t,traj_suffixes,dir_suffixes,ntraj,targets,target,truth)
             # For generations > 0, we now add chosen subset trajectories for active learning
@@ -376,10 +403,12 @@ def create_mltrain_tasks(train_task:MLTrainingTask,train_calcs,seeds,targets,ran
                 train_task.rand_seed = rand_seed[rs]
                 train_task.wrapper.train_args.seed = rand_seed[rs] # MACE specific
                 train_task.calc_suffix = f"{meth}{t}{rs}"
-                new_mltrain_tasks[targets[target]+'_'+train_task.calc_suffix] = deepcopy(train_task)
+                targstr = targets[target]
+                if isinstance(targstr,dict):
+                    targstr = "".join(targstr[p] for p in targstr)
+                new_mltrain_tasks[targstr+'_'+train_task.calc_suffix] = deepcopy(train_task)
     return new_mltrain_tasks
 
-from esteem.tasks.ml_trajectories import MLTrajTask
 def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,meth,md_wrapper,
                         traj_suffix='mldyn',snap_wrapper=None,two_targets=False):
     """
@@ -431,7 +460,6 @@ def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,met
                 new_mltraj_tasks[taskname] = deepcopy(mltraj_task)
     return new_mltraj_tasks
 
-from esteem.tasks.ml_testing import MLTestingTask
 def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_seed,truth,meth,
                         traj_suffixes={},dir_suffixes={},iter_dir_suffixes={},ntraj={},separate_valid=False):
     """
@@ -489,7 +517,6 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
                     new_test_tasks[f"{targets[target]}_{meth}{t}{rs}_mltraj_{meth}{tp}"] = deepcopy(test_task)
     return new_test_tasks
 
-from esteem.tasks.spectra import SpectraTask
 def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,meth,ntraj,traj_suffix='specdyn_recalc',corr_traj=False,task_suffix=None):
     """
     Returns a dictionary of Spectra tasks, based on an input prototype task supplied by

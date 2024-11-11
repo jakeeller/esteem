@@ -35,10 +35,13 @@ class MLTrainingTask:
         all_trajs = get_trajectory_list(self.ntraj)
         if 'valid' in prefix:
             which_trajs = self.which_trajs_valid
+            which_targets = self.which_targets_valid
         else:
             which_trajs = self.which_trajs
+            which_targets = self.which_targets
         if which_trajs is None:
             which_trajs = all_trajs
+            which_targets = [self.target]*len(which_trajs)
         else:
             for trajname in which_trajs:
                 if trajname not in all_trajs:
@@ -46,7 +49,7 @@ class MLTrainingTask:
         trajstem = self.wrapper.calc_filename(self.seed,self.target,prefix=self.calc_prefix,suffix="")
         trajnames = [f'{trajstem}{s}_{self.traj_suffix}.traj' for s in which_trajs]
 
-        return which_trajs,trajnames
+        return which_trajs,which_targets,trajnames
 
     # Main routine
     def run(self):
@@ -55,7 +58,6 @@ class MLTrainingTask:
         # Check input args are valid
         #validate_args(args)
 
-        trajfn = self.wrapper.calc_filename(self.seed,self.target,prefix=self.calc_prefix,suffix=self.traj_suffix)
         dirname = self.wrapper.calc_filename(self.seed,self.target,prefix="",suffix=self.calc_dir_suffix)
 
         # If we need an atom trajectory, copy it from traj_suffix to calc_suffix:
@@ -95,35 +97,46 @@ class MLTrainingTask:
                     #diff_traj(itraj,jtraj,traj)
 
             # If all trajectories exist, merge them
-            which_trajs, trajnames = self.get_trajnames(prefix)
-            print(f'# Trajectories to merge: {trajnames}',flush=True)
-            if all([os.path.isfile(f) for f in trajnames]):
-                if all([os.path.getsize(f) > 0 for f in trajnames]):
-                    if separate_valid:
-                        if prefix=="":
-                            trajfile = f'{trajfn}_{prefix}merged_{self.calc_suffix}.traj'
-                            merge_traj(trajnames,trajfile)
-                        if prefix=="valid":
-                            validfile = f'{trajfn}_{prefix}merged_{self.calc_suffix}.traj'
-                            merge_traj(trajnames,validfile)
-                        else:
-                            validfile=None
-                    else:
-                        pref = prefix
-                        trajfile = f'{trajfn}_{pref}merged_{self.calc_suffix}.traj'
-                        pref = 'valid'
-                        validfile = f'{trajfn}_{pref}merged_{self.calc_suffix}.traj'
-                        #if not os.path.isfile(trajfile) and not os.path.isfile(validfile):
-                        merge_traj(trajnames,trajfile,validfile,valid_fraction,split_seed=rand_seed)
-                        #else:
-                        #    print(f'# Skipping trajectory merge: {trajfile} and {validfile} already exist')
-
+            which_trajs, which_targets, trajnames = self.get_trajnames(prefix)
+            target_dict = self.target
+            if not isinstance(self.target,dict):
+                target_dict = {self.target:str(self.target)}
+            trajfile_dict = {}
+            validfile_dict = {}
+            for target in target_dict:
+                targetstr = target_dict[target]
+                if isinstance(self.target,dict):
+                    trajnames_target = [traj for traj,targ in zip(trajnames,which_targets) if targ==targetstr]
                 else:
-                    raise Exception('# Empty Trajectory file(s) found: ',
-                                    [f for f in trajnames if os.path.getsize(f)==0])
-            else:
-                raise Exception('# Missing Trajectory files: ',
-                                [f for f in trajnames if not os.path.isfile(f)])
+                    trajnames_target = trajnames
+                trajfn = self.wrapper.calc_filename(self.seed,target,prefix=self.calc_prefix,suffix=self.traj_suffix)
+                print(f'# Trajectories to merge: {trajnames_target} for target {targetstr}',flush=True)
+                if all([os.path.isfile(f) for f in trajnames]):
+                    if all([os.path.getsize(f) > 0 for f in trajnames]):
+                        if separate_valid:
+                            if prefix=="":
+                                trajfile = f'{trajfn}_{prefix}merged_{self.calc_suffix}.traj'
+                                merge_traj(trajnames_target,trajfile)
+                            if prefix=="valid":
+                                validfile = f'{trajfn}_{prefix}merged_{self.calc_suffix}.traj'
+                                merge_traj(trajnames_target,validfile)
+                            else:
+                                validfile=None
+                        else:
+                            pref = prefix
+                            trajfile = f'{trajfn}_{pref}merged_{self.calc_suffix}.traj'
+                            pref = 'valid'
+                            validfile = f'{trajfn}_{pref}merged_{self.calc_suffix}.traj'
+                            merge_traj(trajnames_target,trajfile,validfile,valid_fraction,split_seed=rand_seed)
+
+                    else:
+                        raise Exception('# Empty Trajectory file(s) found: ',
+                                        [f for f in trajnames if os.path.getsize(f)==0])
+                else:
+                    raise Exception('# Missing Trajectory files: ',
+                                    [f for f in trajnames if not os.path.isfile(f)])
+                trajfile_dict[targetstr] = trajfile
+                validfile_dict[targetstr] = validfile
             
         if self.reset_loss:
             if hasattr(self.wrapper,"reset_loss"):
@@ -132,7 +145,7 @@ class MLTrainingTask:
             else:
                 raise Exception("# Error: reset_loss == True, yet wrapper has no reset_loss function")
         # Train the ML calculator using this training data
-        calc = self.wrapper.train(seed=self.seed,trajfile=trajfile,validfile=validfile,target=self.target,
+        calc = self.wrapper.train(seed=self.seed,trajfile=trajfile_dict,validfile=validfile_dict,targets_in=self.target,
                                   prefix=self.calc_prefix,suffix=self.calc_suffix,dir_suffix=self.calc_dir_suffix,
                                   restart=self.restart,**self.train_params)
         return calc
