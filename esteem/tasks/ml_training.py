@@ -86,16 +86,6 @@ class MLTrainingTask:
             else:
                 rand_seed = 123
         for prefix in prefs:
-            #if 'diff' in self.target:
-               # which_trajs, trajnames = self.get_trajnames(prefix)
-                #itarget = 0
-                #jtarget = 1
-                #for traj in trajnames:
-                    #itraj = traj.replace("diff",targstr(itarget))
-                    #jtraj = traj.replace("diff",targstr(jtarget))
-                    #print('# Calling diff_traj with {itraj} {jtraj} {traj}')
-                    #diff_traj(itraj,jtraj,traj)
-
             # If all trajectories exist, merge them
             which_trajs, which_targets, trajnames = self.get_trajnames(prefix)
             target_dict = self.target
@@ -103,26 +93,64 @@ class MLTrainingTask:
                 target_dict = {self.target:str(self.target)}
             trajfile_dict = {}
             validfile_dict = {}
+
+            # Special handling for difference trajectories
+            if 'diff' in target_dict:
+                which_diff = target_dict['diff']
+                # Split the strings either side of the '_m_' separator (short for "minus")
+                if '_m_' in which_diff:
+                    diff_targets = which_diff.split('_m_')
+                else:
+                    raise Exception(f"Invalid difference target string: {which_diff}. Expected format: 'target1_m_target2'")
+                trajnames_diff = []
+                itarget = diff_targets[0]
+                jtarget = diff_targets[1]
+                # Create lists of the trajectories for each of these targets
+                itrajs = [traj for traj,targ in zip(trajnames,which_targets) if targ==itarget]
+                jtrajs = [traj for traj,targ in zip(trajnames,which_targets) if targ==jtarget]
+                print(f'# Calling diff_traj with {itarget} {jtarget} {trajnames}')
+                # iterate over both lists simultaneously
+                for itraj,jtraj in zip(itrajs,jtrajs):
+                    # Create new name for output trajectory by splitting on concatenation
+                    # of target names and substituting the last instance with "diff"
+                    ktraj = 'diff'.join(itraj.rsplit(f'{jtarget}{itarget}', 1))
+                    print(f'# Calling diff_traj with {itraj} {jtraj} {ktraj}')
+                    # Process trajectories to write difference trajectory
+                    diff_traj(itraj,jtraj,ktraj)
+                    # Store the name of the difference trajectory for later use
+                    trajnames_diff.append(ktraj)
+            # Iterate over all targets
             for target in target_dict:
                 targetstr = target_dict[target]
-                if isinstance(self.target,dict):
-                    trajnames_target = [traj for traj,targ in zip(trajnames,which_targets) if targ==targetstr]
+                # Special handling for difference trajectories
+                if target == 'diff':
+                    trajnames_target = trajnames_diff
                 else:
-                    trajnames_target = trajnames
+                    if isinstance(self.target,dict):
+                        # Create a list of the trajectories for this target
+                        trajnames_target = [traj for traj,targ in zip(trajnames,which_targets) if targ==targetstr]
+                    else:
+                        # If only one target, use all trajectories
+                        trajnames_target = trajnames
+                # Construct the base of the filename for the merged trajectory
                 trajfn = self.wrapper.calc_filename(self.seed,target,prefix=self.calc_prefix,suffix=self.traj_suffix)
                 print(f'# Trajectories to merge: {trajnames_target} for target {targetstr}',flush=True)
+                # Check that all the trajectories exist and are non-empty
                 if all([os.path.isfile(f) for f in trajnames]):
                     if all([os.path.getsize(f) > 0 for f in trajnames]):
                         if separate_valid:
                             if prefix=="":
+                                # Merge the trajectories for training
                                 trajfile = f'{trajfn}_{prefix}merged_{self.calc_suffix}.traj'
                                 merge_traj(trajnames_target,trajfile)
                             if prefix=="valid":
+                                # Merge the trajectories for validation
                                 validfile = f'{trajfn}_{prefix}merged_{self.calc_suffix}.traj'
                                 merge_traj(trajnames_target,validfile)
                             else:
                                 validfile=None
                         else:
+                            # Merge the trajectories for training and validation (splitting as required)
                             pref = prefix
                             trajfile = f'{trajfn}_{pref}merged_{self.calc_suffix}.traj'
                             pref = 'valid'
@@ -135,6 +163,7 @@ class MLTrainingTask:
                 else:
                     raise Exception('# Missing Trajectory files: ',
                                     [f for f in trajnames if not os.path.isfile(f)])
+                # Store the filename lists for later use in constructing heads dictionaries
                 trajfile_dict[targetstr] = trajfile
                 validfile_dict[targetstr] = validfile
             

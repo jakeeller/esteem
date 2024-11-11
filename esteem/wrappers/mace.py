@@ -39,6 +39,8 @@ class MACEWrapper():
         if isinstance(target,dict):
             calcfn = seed+"_"
             for targ in target:
+                if targ=="diff":
+                    continue
                 calcfn += "es"+str(targ) if targ!=0 else "gs"
             calcfn += "_"+suffix
         else:

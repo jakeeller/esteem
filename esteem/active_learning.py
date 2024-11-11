@@ -148,6 +148,8 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
         dir_suffix = dir_suffixes[traj_suffix]
         # Make a list of the trajectories from this source
         for itarg1,target1 in enumerate(targets):
+            if target1=='diff':
+                continue
             targstr1 = targets[target1]
             if isinstance(targstr1,dict):
                 continue
@@ -170,6 +172,8 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
                 if not isinstance(targstr2_dict,dict):
                     targstr2_dict = {0: targstr2_dict}
                 for targstr2_key in targstr2_dict:
+                    if targstr2_key=='diff':
+                        continue
                     targstr2 = targstr2_dict[targstr2_key]
                     targstr2_orig = targstr2
                     if seed=='{solv}_{solv}' and targstr2!='gs':
@@ -267,6 +271,8 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
         for targetp in targets:
             #if targetp > target:
             #    continue
+            if targetp=='diff':
+                continue
             targstrp = targets[targetp]
             if isinstance(targstrp,dict):
                 continue
@@ -291,6 +297,8 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
                     if not isinstance(targstr2_dict,dict):
                         targstr2_dict = {0: targstr2_dict}
                     for targstr2_key in targstr2_dict:
+                        if targstr2_key=='diff':
+                            continue
                         targstr2 = targstr2_dict[targstr2_key]
                         targstr2_orig = targstr2
                         if seed=='{solv}_{solv}':
@@ -365,6 +373,8 @@ def create_mltrain_tasks(train_task:MLTrainingTask,train_calcs,seeds,targets,ran
             swa_init_epochs = 100000
 
     for target in targets:
+        if target=='diff':
+            continue
         for t in train_calcs:
             # Calculator basic info
             train_task.traj_suffix = truth
@@ -405,7 +415,7 @@ def create_mltrain_tasks(train_task:MLTrainingTask,train_calcs,seeds,targets,ran
                 train_task.calc_suffix = f"{meth}{t}{rs}"
                 targstr = targets[target]
                 if isinstance(targstr,dict):
-                    targstr = "".join(targstr[p] for p in targstr)
+                    targstr = "".join((targstr[p] if p!="diff" else "") for p in targstr)
                 new_mltrain_tasks[targstr+'_'+train_task.calc_suffix] = deepcopy(train_task)
     return new_mltrain_tasks
 
@@ -423,6 +433,8 @@ def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,met
     if mltraj_task.calc_seed is None:
         mltraj_task.calc_seed = f"{{solu}}" #_{{solv}}"
     for target in targets:
+        if target=='diff':
+            continue
         for t in train_calcs:
             mltraj_task.wrapper = md_wrapper
             mltraj_task.calc_prefix = ""
