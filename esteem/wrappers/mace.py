@@ -261,7 +261,7 @@ class MACEWrapper():
                 if target!='diff':
                     heads[targetstr]['E0s'] = str(E0s)
                 else:
-                    heads[targetstr] = str({Z:0 for Z in E0s})
+                    heads[targetstr]['E0s'] = str({Z:0 for Z in E0s})
         else:
             train_args.E0s = str(E0s)
 
