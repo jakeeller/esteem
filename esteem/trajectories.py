@@ -754,7 +754,7 @@ def get_trajectory_list(ntraj):
     return (list(string.ascii_uppercase)+extras)[0:ntraj]
 
 # Merge trajectories (if generated separately)
-def merge_traj(trajnames,trajfile,trajfile_valid=None,valid_fraction=0.0,split_seed=123):
+def merge_traj(trajnames,trajfile,trajfile_valid=None,valid_fraction=0.0,split_seed=123,split_seed_dict={}):
     """
     Merges a list of trajectories supplied as a list of filenames,
     and writes the result to another trajectory supplied as a filename
@@ -767,7 +767,7 @@ def merge_traj(trajnames,trajfile,trajfile_valid=None,valid_fraction=0.0,split_s
     if trajfile_valid is not None:
         fulltraj_valid = Trajectory(trajfile_valid,'w')
 
-    for tr in trajnames:
+    for itraj,tr in enumerate(trajnames):
         read_traj = Trajectory(tr)
         size = len(read_traj)
         indices = list(range(size))
@@ -775,9 +775,14 @@ def merge_traj(trajnames,trajfile,trajfile_valid=None,valid_fraction=0.0,split_s
         if valid_fraction > 0.0:
             train_size = size - int(valid_fraction * size)
             valid_size = int(valid_fraction * size)
-            seed = str(split_seed) + tr
-            int_seed = int(hashlib.sha1(seed.encode("utf-8")).hexdigest(), 16) % (10 ** 10)
-            print(f'Used string {seed} to generate seed {int_seed}')
+            if itraj not in split_seed_dict:
+                seed = str(split_seed) + tr
+                int_seed = int(hashlib.sha1(seed.encode("utf-8")).hexdigest(), 16) % (10 ** 10)
+                print(f'Used string {seed} to generate seed {int_seed}')
+                split_seed_dict[itraj] = int_seed
+            else:
+                int_seed = split_seed_dict[itraj]
+                print(f'Retrieved seed {int_seed} from seeds dictionary')
             rng = np.random.default_rng(int_seed)
             rng.shuffle(indices)
             print(f"# {size} frames of {tr} to be split into {train_size} training and {valid_size} validation using seed {int_seed}")

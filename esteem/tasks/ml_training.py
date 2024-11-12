@@ -109,6 +109,7 @@ class MLTrainingTask:
                 target_dict = {self.target:str(self.target)}
             trajfile_dict = {}
             validfile_dict = {}
+            split_seed_dict = {}
 
             # Special handling for difference trajectories
             if 'diff' in target_dict:
@@ -149,7 +150,8 @@ class MLTrainingTask:
                             trajfile = f'{trajfn}_{pref}merged_{self.calc_suffix}.traj'
                             pref = 'valid'
                             validfile = f'{trajfn}_{pref}merged_{self.calc_suffix}.traj'
-                            merge_traj(trajnames_target,trajfile,validfile,valid_fraction,split_seed=rand_seed)
+                            merge_traj(trajnames_target,trajfile,validfile,valid_fraction,
+                                       split_seed=rand_seed,split_seed_dict=split_seed_dict)
 
                     else:
                         raise Exception('# Empty Trajectory file(s) found: ',

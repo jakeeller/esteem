@@ -269,8 +269,8 @@ class MACEWrapper():
         # Set up input data
         train_args.name = self.calc_filename(seed,target,prefix="",suffix=suffix)
         train_args.device = 'cuda'
-        train_args.heads = str(heads)
-        print('heads=',train_args.heads)
+        train_args.heads = str(heads) if heads is not None else heads
+        print('# Setting heads to:',train_args.heads)
         
         # Some fixes to the input parameter list that prevent breakage
         if train_args.start_swa is None:
