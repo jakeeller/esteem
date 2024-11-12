@@ -116,31 +116,18 @@ class MACEWrapper():
     def traj_to_extxyz(self,trajfile,outfilename):
 
         from ase.io import Trajectory
-        from esteem import trajectories
+        from ase.io.extxyz import write_xyz
 
-        traj = Trajectory(trajfile)
-        
-        from ase.io.extxyz import write_xyz, per_atom_properties, per_config_properties
-        per_config_properties += ['REF_energy','REF_dipole']
-        per_atom_properties += ['REF_forces']
-        f=open(outfilename,"w")
-        for t in traj:
-            tp = t.copy()
-            tp.calc = t.calc
-            tp.calc.results['REF_energy'] = tp.calc.results['energy']
-            tp.calc.results['REF_forces'] = tp.calc.results['forces']
-            tp.calc.results['REF_dipole'] = tp.calc.results['dipole']
-            del tp.calc.results['energy']
-            del tp.calc.results['forces']
-            del tp.calc.results['dipole']
-            write_xyz(f,tp)
-        f.close()
-        per_atom_properties.pop()
-        per_config_properties.pop()
-        per_config_properties.pop()
-
+        traj = Trajectory(trajfile)        
+        with open(outfilename,"w") as f:
+            for t in traj:
+                tp = t.copy()
+                tp.info["REF_energy"] = t.calc.results["energy"]
+                tp.info["REF_dipole"] = t.calc.results["dipole"]
+                tp.arrays["REF_forces"] = t.calc.results["forces"]
+                write_xyz(f,tp)
         return outfilename, len(traj)
-   
+
     def reset_loss(self,seed,prefix="",suffix="",target=None):
         """
         Runs training for MACE model using an input trajectory as training points
