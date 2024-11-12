@@ -1,24 +1,39 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-# In[ ]:
-
-
 """Defines a task to train a Machine Learning calculator on a trajectory of snapshots
 by calling the train() function of the MLWrapper"""
 
-
-# # Main Routine
-
-# In[ ]:
-
-
 from esteem.trajectories import merge_traj, diff_traj, get_trajectory_list, targstr
-
 import sys
 import os
 import string
 from shutil import copyfile
+
+def make_diff_trajs(target_dict,which_targets,trajnames):
+     which_diff = target_dict['diff']
+     # Split the strings either side of the '_m_' separator (short for "minus")
+     if '_m_' in which_diff:
+         diff_targets = which_diff.split('_m_')
+     else:
+         raise Exception(f"Invalid difference target string: {which_diff}. Expected format: 'target1_m_target2'")
+     trajnames_diff = []
+     itarget = diff_targets[0]
+     jtarget = diff_targets[1]
+     # Create lists of the trajectories for each of these targets
+     itrajs = [traj for traj,targ in zip(trajnames,which_targets) if targ==itarget]
+     jtrajs = [traj for traj,targ in zip(trajnames,which_targets) if targ==jtarget]
+     print(f'# Calling diff_traj with {itarget} {jtarget} {trajnames}')
+     # iterate over both lists simultaneously
+     for itraj,jtraj in zip(itrajs,jtrajs):
+         # Create new name for output trajectory by splitting on concatenation
+         # of target names and substituting the last instance with "diff"
+         ktraj = 'diff'.join(itraj.rsplit(f'{jtarget}{itarget}', 1))
+         print(f'# Calling diff_traj with {itraj} {jtraj} {ktraj}')
+         # Process trajectories to write difference trajectory
+         diff_traj(itraj,jtraj,ktraj)
+         # Store the name of the difference trajectory for later use
+         trajnames_diff.append(ktraj)
+     return trajnames_diff
 
 class MLTrainingTask:
 
@@ -58,6 +73,7 @@ class MLTrainingTask:
         # Check input args are valid
         #validate_args(args)
 
+        # Get name of folder where calculator files live
         dirname = self.wrapper.calc_filename(self.seed,self.target,prefix="",suffix=self.calc_dir_suffix)
 
         # If we need an atom trajectory, copy it from traj_suffix to calc_suffix:
@@ -96,29 +112,7 @@ class MLTrainingTask:
 
             # Special handling for difference trajectories
             if 'diff' in target_dict:
-                which_diff = target_dict['diff']
-                # Split the strings either side of the '_m_' separator (short for "minus")
-                if '_m_' in which_diff:
-                    diff_targets = which_diff.split('_m_')
-                else:
-                    raise Exception(f"Invalid difference target string: {which_diff}. Expected format: 'target1_m_target2'")
-                trajnames_diff = []
-                itarget = diff_targets[0]
-                jtarget = diff_targets[1]
-                # Create lists of the trajectories for each of these targets
-                itrajs = [traj for traj,targ in zip(trajnames,which_targets) if targ==itarget]
-                jtrajs = [traj for traj,targ in zip(trajnames,which_targets) if targ==jtarget]
-                print(f'# Calling diff_traj with {itarget} {jtarget} {trajnames}')
-                # iterate over both lists simultaneously
-                for itraj,jtraj in zip(itrajs,jtrajs):
-                    # Create new name for output trajectory by splitting on concatenation
-                    # of target names and substituting the last instance with "diff"
-                    ktraj = 'diff'.join(itraj.rsplit(f'{jtarget}{itarget}', 1))
-                    print(f'# Calling diff_traj with {itraj} {jtraj} {ktraj}')
-                    # Process trajectories to write difference trajectory
-                    diff_traj(itraj,jtraj,ktraj)
-                    # Store the name of the difference trajectory for later use
-                    trajnames_diff.append(ktraj)
+                trajnames_diff = make_diff_trajs(target_dict,which_targets,trajnames)
             # Iterate over all targets
             for target in target_dict:
                 targetstr = target_dict[target]
@@ -206,19 +200,6 @@ class MLTrainingTask:
         parser.add_argument('--traj_links_test','-U',default=None,type=dict,help='Targets for links to create for testing trajectories')
         parser.add_argument('--cutoff','-d',default=6.5,type=float,help='Gaussian descriptor cutoff')
         parser.add_argument('--valid_fraction','-W',default=0.1,type=float,help='Fraction of trajectory to use as validation data')
-        '''
-        parser.add_argument('--cores','-c',default=1,type=int,help='Number of parallel cores on which to run the training')
-        parser.add_argument('--steps','-A',default=None,type=int,help='Annealer steps')
-        parser.add_argument('--Tmax','-u',default=800.0,type=float,help='Annealer starting temperature')
-        parser.add_argument('--Tmin','-v',default=0.01,type=float,help='Annealer final temperature')
-        parser.add_argument('--energy_rmse','-E',default=0.02,type=float,help='RMS Energy deviation for convergence')
-        parser.add_argument('--force_rmse','-F',default=0.02,type=float,help='RMS Force deviation for convergence')
-        parser.add_argument('--energy_maxresid','-G',default=None,type=float,help='Maximum energy deviation for convergence')
-        parser.add_argument('--force_maxresid','-H',default=None,type=float,help='Maximum force deviation for convergence')
-        parser.add_argument('--hiddenlayers','-L',default=(10,10,10),nargs='*',type=int,help='Hidden Layer structure ')
-        parser.add_argument('--force_coefficient','-f',default=0.04,type=float,help='Weighting of forces (compared to energy) in training')
-        parser.add_argument('--overfit','-o',default=0.00,type=float,help='Weighting of forces (compared to energy) in training')
-        '''
         
         return parser
 
@@ -230,10 +211,6 @@ class MLTrainingTask:
 
 
 # # Command-line driver
-
-# In[ ]:
-
-
 def get_parser():
     mltrain = MLTrainingTask()
     return mltrain.make_parser()
