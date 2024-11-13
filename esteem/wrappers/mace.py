@@ -45,11 +45,11 @@ class MACEWrapper():
             calcfn += "_"+suffix
         else:
             if target is None or target == 0:
-                calcfn = seed+"_gs_"+suffix
-            elif target == "diff":
-                calcfn = seed+"_diff_"+suffix
+                calcfn = f"{seed}_gs_{suffix}"
+            elif isinstance(target,str):
+                calcfn = f"{seed}_{target}_{suffix}"
             else:
-                calcfn = seed+"_es"+str(target)+"_"+suffix
+                calcfn = f"{seed}_es{str(target)}_{suffix}"
             
         calcfn = prefix + calcfn
             
@@ -89,6 +89,17 @@ class MACEWrapper():
         if isinstance(suffix,dict) or isinstance(target,list):
             self.calc = []
         suffixes = suffix if isinstance(suffix,dict) else {suffix:self.train_args.seed}
+        if isinstance(calctarget,list):
+            targets = calctarget
+        if isinstance(calctarget,dict):
+           targets = ""
+           for targ in calctarget:
+               if targ=="diff":
+                   continue
+               targets += "es"+str(targ) if targ!=0 else "gs"
+            targets = [targets]
+        else:
+            targets = [calctarget]
         targets = calctarget if isinstance(calctarget,list) else [calctarget]
         for suff in suffixes:
             for targ in targets:
