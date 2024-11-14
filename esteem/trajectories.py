@@ -15,6 +15,8 @@ import shutil
 def targstr(targ):
     if targ == 0 or targ is None:
         return "gs"
+    elif isinstance(targ,dict):
+        return "".join((targ[p] if p!="diff" else "") for p in targ)
     else:
         return "es"+str(targ)
 
@@ -504,6 +506,8 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
 
     if isinstance(target,list):
         all_targets = target
+    elif isinstance(target,dict):
+        all_targets = list(target.keys())
     else:
         all_targets = [target]
     if input_traj_range is None:

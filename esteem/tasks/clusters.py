@@ -221,6 +221,8 @@ class ClustersTask:
             if hasattr(self,'target'):
                 if isinstance(self.target,list):
                     target = self.target
+                elif isinstance(self.target,dict):
+                    target = list(self.target.keys())
                 else:
                     mintarget = self.target
                     target = list(range(mintarget,self.nroots+1))

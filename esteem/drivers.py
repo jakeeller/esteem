@@ -1475,9 +1475,12 @@ def mltraj_cleanup(mltraj):
             ct.ref_mol_dir = mltraj.ref_mol_dir
             all_results_present = True
             all_traj_recalc_files = {}
-            targs = ct.target
-            if not isinstance(targs,list):
-               targs = [targs] 
+            if isinstance(ct.target,list):
+               targs = ct.target
+            elif isinstance(ct.target,dict):
+               targs = ct.target
+            else:
+               targs = [ct.target]
             for targ in targs:
                 traj_recalc_file = f'{ct.solute}{solvstr}_{targstr(targ)}_{ct.which_traj}_{ct.output}.traj'
                 file_present = (path.exists(traj_recalc_file) and

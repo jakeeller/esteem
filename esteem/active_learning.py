@@ -250,6 +250,8 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
     if gen is None or (gen < 1 and type(task) is not MLTestingTask):
         return
     targstr = targets[target]
+    if (type(task)==MLTestingTask):
+        print(targets,target)
     # Loop over generations prior to current
     for g in range(genstart,genend):
         calcp = f'{pref(calc)}{g}{calc[-1]}'
@@ -420,7 +422,7 @@ def create_mltrain_tasks(train_task:MLTrainingTask,train_calcs,seeds,targets,ran
     return new_mltrain_tasks
 
 def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,meth,md_wrapper,
-                        traj_suffix='mldyn',snap_wrapper=None,two_targets=False):
+                        traj_suffix='mldyn',snap_wrapper=None,two_targets=False,snap_targets=None):
     """
     Returns a dictionary of MLTraj tasks, based on an input prototype task supplied by
     the user, for all the required MLTraj tasks for an Active Learning task.
@@ -451,19 +453,20 @@ def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,met
                 if snap_wrapper is None:
                     mltraj_task.snap_calc_params = None
                 else:
-                    targ = target
                     mltraj_task.snap_wrapper = snap_wrapper
                     if two_targets:
+                        snap_targets = [0,1] if target==0 else [1,0]
+                    if snap_targets is not None:
                         calc_suffix = mltraj_task.calc_suffix
                         if mltraj_task.carved_suffix is not None and mltraj_task.carved_suffix!='':
                             taskname = f"{taskname}_{traj_suffix}_{mltraj_task.carved_suffix}"
                         else:
                             taskname = f"{taskname}_{traj_suffix}"     
-                        targ = [0,1] if target==0 else [1,0]
                     else:
+                        snap_targets = target
                         taskname = taskname + f'x{len(rand_seed)}'
                         calc_suffix = {f'{meth}{t}{rs}':rseed for (rs,rseed) in rand_seed.items()}
-                    mltraj_task.snap_calc_params = {'target':targ,
+                    mltraj_task.snap_calc_params = {'target':snap_targets,
                                                     'calc_prefix':'../../',
                                                     'calc_dir_suffix':mltraj_task.calc_dir_suffix,
                                                     'calc_suffix':calc_suffix,
@@ -482,6 +485,7 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
     truth method and the ML method
     """
     new_test_tasks = {}
+    print(targets)
     for target in targets:
         for t in train_calcs:
             # This test uses the calculator directory from the MLTrain task as the traj location
@@ -489,9 +493,14 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
             test_task.calc_prefix = ""
             test_task.calc_dir_suffix = f'{meth}{pref(t)}'
             test_task.which_trajs = list('A')
-            test_task.traj_prefix = f"{test_task.calc_seed}_{targets[target]}_{meth}{pref(t)}_test/"
-            test_task.target = target
             targstr = targets[target]
+            if isinstance(targstr,dict):
+                targstr = "".join((targstr[p] if p!="diff" else "") for p in targstr)
+            test_task.traj_prefix = f"{test_task.calc_seed}_{targstr}_{meth}{pref(t)}_test/"
+            if isinstance(targets[target],dict):
+                test_task.target = targets[target]
+            else:
+                test_task.target = target
             test_task.traj_links = {}
             test_task.which_trajs = {}
             test_task.ref_mol_seed_dict = {}
@@ -509,7 +518,7 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
                 test_task.calc_suffix = f'{meth}{t}{rs}'
                 test_task.plotfile = f'{{solu}}_{{solv}}_{test_task.calc_suffix}.png'
                 # Store a test task for evaluating the success of the calculator on its training data
-                new_test_tasks[f"{targets[target]}_{meth}{t}{rs}"] = deepcopy(test_task)
+                new_test_tasks[f"{targstr}_{meth}{t}{rs}"] = deepcopy(test_task)
             # Now set up tasks for testing against ground truth results sampled from a specific set of trajectory data
             for tp in train_calcs:
                 test_task.traj_links = {}
@@ -526,7 +535,7 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
                     test_task.wrapper.train_args.seed = rand_seed[rs]
                     test_task.calc_suffix = f'{meth}{t}{rs}'
                     test_task.plotfile = f'{{solu}}_{{solv}}_{test_task.calc_suffix}_mltraj_{meth}{tp}.png'
-                    new_test_tasks[f"{targets[target]}_{meth}{t}{rs}_mltraj_{meth}{tp}"] = deepcopy(test_task)
+                    new_test_tasks[f"{targstr}_{meth}{t}{rs}_mltraj_{meth}{tp}"] = deepcopy(test_task)
     return new_test_tasks
 
 def create_spectra_tasks(spectra_task:SpectraTask,train_calcs,targets,rand_seed,meth,ntraj,traj_suffix='specdyn_recalc',corr_traj=False,task_suffix=None):

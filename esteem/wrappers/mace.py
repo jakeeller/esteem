@@ -92,11 +92,11 @@ class MACEWrapper():
         if isinstance(calctarget,list):
             targets = calctarget
         if isinstance(calctarget,dict):
-           targets = ""
-           for targ in calctarget:
-               if targ=="diff":
-                   continue
-               targets += "es"+str(targ) if targ!=0 else "gs"
+            targets = ""
+            for targ in calctarget:
+                if targ=="diff":
+                    continue
+                targets += "es"+str(targ) if targ!=0 else "gs"
             targets = [targets]
         else:
             targets = [calctarget]
@@ -278,7 +278,7 @@ class MACEWrapper():
             train_args.E0s = str(E0s)
 
         # Set up input data
-        train_args.name = self.calc_filename(seed,target,prefix="",suffix=suffix)
+        train_args.name = self.calc_filename(seed,targets_in,prefix="",suffix=suffix)
         train_args.device = 'cuda'
         train_args.heads = str(heads) if heads is not None else heads
         print('# Setting heads to:',train_args.heads)
@@ -288,7 +288,7 @@ class MACEWrapper():
             train_args.start_swa = train_args.max_num_epochs // 4 * 3
 
         # Write config.txt
-        config_file = self.calc_filename(seed,target,prefix="",suffix=suffix)+'_config.txt'
+        config_file = self.calc_filename(seed,targets_in,prefix="",suffix=suffix)+'_config.txt'
         print(f'# Writing MACE configuration to {config_file}')
         with open(config_file,"w") as f:
             for kw in train_args.__dict__:
