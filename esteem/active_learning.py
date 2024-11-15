@@ -191,7 +191,7 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
                                     task.which_targets += [targstr2_orig]
                                 else:
                                     task.which_trajs.update({jtraj:jtraj for jtraj in new_trajs})
-                                    # TODO which_targets
+                                    task.which_targets.update({jtraj:targstr2_key for jtraj in new_trajs})
                                     task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
                                 #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs} (seed={seed}, itarg1={itarg1}, itraj={itraj}, passed[{target1}]={passed[target1]}')
                             elif key=='valid':
@@ -202,7 +202,7 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
                                     task.which_targets_valid += [targstr2_orig]
                                 else:
                                     task.which_trajs_valid.update({jtraj:jtraj for jtraj in new_trajs})
-                                    # TODO which_targets
+                                    task.which_targets_valid.update({jtraj:targstr2_key for jtraj in new_trajs})
                                     task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
                                 #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs_valid}')
                             elif key=='test':
@@ -212,6 +212,7 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
                                     task.which_trajs_test += new_trajs
                                 else:
                                     task.which_trajs_test.update({jtraj:jtraj for jtraj in new_trajs})
+                                    task.which_targets_test.update({jtraj:targstr2_key for jtraj in new_trajs})
                                     task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
                                 #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs_test}')
                         passed[target1] += ntraj[targstr1,traj_suffix]
@@ -250,8 +251,6 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
     if gen is None or (gen < 1 and type(task) is not MLTestingTask):
         return
     targstr = targets[target]
-    if (type(task)==MLTestingTask):
-        print(targets,target)
     # Loop over generations prior to current
     for g in range(genstart,genend):
         calcp = f'{pref(calc)}{g}{calc[-1]}'
@@ -330,7 +329,7 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
                                     task.which_targets += [targstr2_orig]
                                 else:
                                     task.which_trajs[new_traj] = new_traj
-                                    #task.which_targets[new_traj] += [targstr2_orig]
+                                    task.which_targets[new_traj] = targstr2_orig
                                     task.ref_mol_seed_dict[new_traj] = seed
                                 #print(f'adding for {calc}: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs}')
                             elif key=='valid':
@@ -341,7 +340,7 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
                                     task.which_targets_valid += [targstr2_orig]
                                 else:
                                     task.which_trajs_valid[new_traj] = new_traj
-                                    #task.which_targets_valid[new_traj] += [targstr2_orig]
+                                    task.which_targets_valid[new_traj] = targstr2_orig
                                     task.ref_mol_seed_dict[new_traj] = seed
                                 #print(f'adding for {calc}: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_valid}')
                             elif key=='test':
@@ -349,8 +348,10 @@ def add_iterating_trajectories(task,seeds,calc,iter_dir_suffixes,targets,target,
                                 new_traj = f'{gen_char}{traj_char}'
                                 if isinstance(task.which_trajs_test,list):
                                     task.which_trajs_test += [new_traj]
+                                    #task.which_targets_test += [targstr2_orig]
                                 else:
                                     task.which_trajs_test[new_traj] = new_traj
+                                    #task.which_targets_test[new_traj] = targstr2_orig
                                     task.ref_mol_seed_dict[new_traj] = seed
                                 #print(f'adding: {targstr}_{calc}.traj_links[{gen_char+traj_char}] = {traj_dest} for {key} {task.which_trajs_test}')
                             offset = offset + 1
@@ -485,7 +486,6 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
     truth method and the ML method
     """
     new_test_tasks = {}
-    print(targets)
     for target in targets:
         for t in train_calcs:
             # This test uses the calculator directory from the MLTrain task as the traj location
@@ -503,6 +503,7 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
                 test_task.target = target
             test_task.traj_links = {}
             test_task.which_trajs = {}
+            test_task.which_targets = {}
             test_task.ref_mol_seed_dict = {}
             if separate_valid:
                 test_task.traj_links_valid = test_task.traj_links

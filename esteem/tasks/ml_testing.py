@@ -72,6 +72,12 @@ class MLTestingTask:
             if "_" in which_trajs:
                 traj_suffix = which_trajs.split("_",1)[1]
                 which_trajs = which_trajs.split("_",1)[0]
+            traj_target = None
+            for traj in which_trajs:
+                if self.which_targets[traj] != traj_target and traj_target is not None:
+                    raise Exception("Non-matching targets in test trajectories")
+                traj_target = self.which_targets[traj]
+                print('# Target set to: ',traj_target)
             #for trajname in which_trajs:
             #    if trajname not in all_trajs:
             #        raise Exception("Invalid trajectory name:",trajname)
@@ -104,15 +110,19 @@ class MLTestingTask:
             print(f'# Writing merged input trajectory file {intrajfile}')
         merge_traj(trajnames,intrajfile)
         intraj = Trajectory(intrajfile)
-        # Load the calculator
-        print("# Loading Calculator")
+        # Set up the calculator parameters
+        print(f"# Loading Calculator with params: {self.calc_seed} {self.target} {self.calc_prefix} {self.calc_dir_suffix} {self.calc_suffix}")
+        self.wrapper.calc = None
         calc_params = {'calc_seed': self.calc_seed,
                        'calc_suffix': self.calc_suffix,
                        'calc_dir_suffix': self.calc_dir_suffix,
                        'calc_prefix': f'../{self.calc_prefix}', # Testing will be run from subdirectory
-                       'target': self.target}
+                       'target': traj_target} # Run on specific target (calculator for all targets may be loaded if using multihead)
         if hasattr(self.wrapper,'update_atom_e'):
             self.wrapper.update_atom_e = True
+        # Load the calculator
+    def load(self,seed,target=None,prefix="",suffix="",dir_suffix=""):
+        self.wrapper.load(self.calc_seed,self.target,self.prefix,calc_prefix,self.calc_dir_suffix)
         output_traj = self.output_traj
         if output_traj is None:
             output_traj = calc_suffix + "_"+which_traj_str+"_test"
