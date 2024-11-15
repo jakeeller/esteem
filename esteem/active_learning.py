@@ -191,7 +191,7 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
                                     task.which_targets += [targstr2_orig]
                                 else:
                                     task.which_trajs.update({jtraj:jtraj for jtraj in new_trajs})
-                                    task.which_targets.update({jtraj:targstr2_key for jtraj in new_trajs})
+                                    task.which_targets.update({jtraj:targstr2_orig for jtraj in new_trajs})
                                     task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
                                 #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs} (seed={seed}, itarg1={itarg1}, itraj={itraj}, passed[{target1}]={passed[target1]}')
                             elif key=='valid':
@@ -202,7 +202,7 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
                                     task.which_targets_valid += [targstr2_orig]
                                 else:
                                     task.which_trajs_valid.update({jtraj:jtraj for jtraj in new_trajs})
-                                    task.which_targets_valid.update({jtraj:targstr2_key for jtraj in new_trajs})
+                                    task.which_targets_valid.update({jtraj:targstr2_orig for jtraj in new_trajs})
                                     task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
                                 #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs_valid}')
                             elif key=='test':
@@ -212,7 +212,7 @@ def add_trajectories(task,seeds,calc,traj_suffixes,dir_suffixes,ntraj,targets,ta
                                     task.which_trajs_test += new_trajs
                                 else:
                                     task.which_trajs_test.update({jtraj:jtraj for jtraj in new_trajs})
-                                    task.which_targets_test.update({jtraj:targstr2_key for jtraj in new_trajs})
+                                    task.which_targets_test.update({jtraj:targstr2_orig for jtraj in new_trajs})
                                     task.ref_mol_seed_dict.update({jtraj:seed for jtraj in new_trajs})
                                 #print(f'adding: {calc}.traj_links[{offset+traj}] = {traj_dest} for {key} {task.which_trajs_test}')
                         passed[target1] += ntraj[targstr1,traj_suffix]

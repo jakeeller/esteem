@@ -112,17 +112,17 @@ class MLTestingTask:
         intraj = Trajectory(intrajfile)
         # Set up the calculator parameters
         print(f"# Loading Calculator with params: {self.calc_seed} {self.target} {self.calc_prefix} {self.calc_dir_suffix} {self.calc_suffix}")
-        self.wrapper.calc = None
+        #self.wrapper.calc = None
         calc_params = {'calc_seed': self.calc_seed,
                        'calc_suffix': self.calc_suffix,
                        'calc_dir_suffix': self.calc_dir_suffix,
                        'calc_prefix': f'../{self.calc_prefix}', # Testing will be run from subdirectory
-                       'target': traj_target} # Run on specific target (calculator for all targets may be loaded if using multihead)
+                       'calc_head': traj_target,
+                       'target': self.target} # Run on specific target (calculator for all targets may be loaded if using multihead)
         if hasattr(self.wrapper,'update_atom_e'):
             self.wrapper.update_atom_e = True
         # Load the calculator
-    def load(self,seed,target=None,prefix="",suffix="",dir_suffix=""):
-        self.wrapper.load(self.calc_seed,self.target,self.prefix,calc_prefix,self.calc_dir_suffix)
+        #self.wrapper.load(self.calc_seed,self.target,'../'+self.calc_prefix,self.calc_suffix,self.calc_dir_suffix)
         output_traj = self.output_traj
         if output_traj is None:
             output_traj = calc_suffix + "_"+which_traj_str+"_test"
@@ -137,11 +137,11 @@ class MLTestingTask:
         outtraj = Trajectory(outtrajfile)
         if self.ref_mol_dir is not None:
             intrajfile_refsub = trajfn+"_"+calc_suffix+"_"+which_traj_str+'_refsub.traj'
-            self.subtract_reference_energies(intraj,intrajfile_refsub)
+            self.subtract_reference_energies(intraj,intrajfile_refsub,traj_target)
             intraj.close()
             intraj = Trajectory(intrajfile_refsub)
             outtrajfile_refsub = trajfn+"_"+output_traj+'_refsub.traj'
-            self.subtract_reference_energies(outtraj,outtrajfile_refsub)
+            self.subtract_reference_energies(outtraj,outtrajfile_refsub,traj_target)
             outtraj.close()
             outtraj = Trajectory(outtrajfile_refsub)
             
@@ -158,7 +158,7 @@ class MLTestingTask:
                 os.remove(intrajfile_refsub)
                 os.remove(outtrajfile_refsub)
 
-    def subtract_reference_energies(self,trajin,trajout_file):
+    def subtract_reference_energies(self,trajin,trajout_file,traj_target):
         """Subtract reference energies from a trajectory to just get energy above reference zero"""
         from esteem.drivers import get_solu_solv_names
         from esteem.trajectories import targstr
@@ -181,6 +181,7 @@ class MLTestingTask:
                        'calc_suffix': self.calc_suffix,
                        'calc_dir_suffix': self.calc_dir_suffix,
                        'calc_prefix': f'../{self.calc_prefix}',
+                       'calc_head': traj_target,
                        'target': self.target}
         # Read in Reference E, f, p
         if ref_solv is not None:

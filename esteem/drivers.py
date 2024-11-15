@@ -1308,11 +1308,11 @@ def mltest_driver(mltest,all_solutes,all_solvents):
             plotfile = seed_state_str + '_' + mltest.calc_suffix + '_' + str(t) + '.png'
             mltest.plotfile = sub_solu_solv_names(plotfile,mltest.calc_seed,all_solutes,all_solvents)
             print(f"# Plotfile set to {mltest.plotfile}")
-            try:
-                mltest.run()
-            except Exception as e:
-                print(f'# Error when testing trajectory, continuing')
-                print(e)
+            #try:
+            mltest.run()
+            #except Exception as e:
+            #    print(f'# Error when testing trajectory, continuing')
+            #    print(e)
     else: # single trajectory to test
         if mltest.plotfile is not None:
             mltest.plotfile = sub_solu_solv_names(mltest.plotfile,mltest.calc_seed,all_solutes,all_solvents)

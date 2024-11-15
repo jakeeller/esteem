@@ -643,9 +643,13 @@ class MACEWrapper():
         suffix = calc_params['calc_suffix']
         dir_suffix = calc_params['calc_dir_suffix']
         prefix = calc_params['calc_prefix']
+        head = calc_params['calc_head']
         
         # Load the appropriate MACE Calculator(s)
         calc_ml = self.load(calc_seed,target,prefix=prefix,suffix=suffix,dir_suffix=dir_suffix)
+        if head not in calc_ml.models[0].heads:
+            raise Exception(f"Head {head} not found in MACE calculator heads list: {calc_ml.models[0].heads}")
+        model.info["head"] = head
         if isinstance(calc_ml,list):
             e_calc = []
             f_calc = []
