@@ -559,7 +559,6 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
         except Exception as e:
             # existing trajectory may have no calculator
             energy_in = 0; forces_in = np.array([[0,0,0]]*len(frame))
-            raise e
         cont = False
         for targ in all_targets:
             label = f"{seed}_{targstr(targ)}_{traj_label}_{traj_suffix}{iout:04}"

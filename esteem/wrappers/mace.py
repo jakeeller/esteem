@@ -4,6 +4,7 @@
 """Defines the MACEWrapper Class"""
 import numpy as np
 from ase.io import read,write
+from os import path
 
 class MACEWrapper():
     """
@@ -82,7 +83,6 @@ class MACEWrapper():
         if self.calc is not None: 
             return self.calc
         from mace.calculators import MACECalculator
-        from os import path
 
         # Find checkpoint file(s) for calculator
         calctarget = self.calc_params['target']
@@ -105,18 +105,8 @@ class MACEWrapper():
             for targ in targets:
                 dirname = self.calc_filename(seed,targ,prefix=prefix,suffix=dir_suffix)
                 calcfn = self.calc_filename(seed,targ,prefix="",suffix=suff)
-                modelfile = f"{dirname}/{calcfn}_stagetwo.model"
-                if path.exists(modelfile):
-                    checkpoint = modelfile
-                else:
-                    modelfile = f"{dirname}/{calcfn}.model"
-                    if path.exists(modelfile):
-                        checkpoint = modelfile
-                    else:
-                        checkpoints_dir=f"{dirname}/checkpoints"
-                        checkpoint = f"{checkpoints_dir}/{calcfn}_run-{suffixes[suff]}.model"
-                print(f'# Loading Calculator from: {checkpoint} with args: {self.load_args}',flush=True)
-                calc = MACECalculator(checkpoint,device="cuda",default_dtype='float64',model_type='EnergyDipoleMACE')
+                modelfile = self.find_best_model(dirname,calcfn,suffixes[suff])
+                calc = MACECalculator(modelfile,device="cuda",default_dtype='float64',model_type='EnergyDipoleMACE')
                 if isinstance(suffix,dict) or isinstance(calctarget,list):
                     self.calc.append(calc)
                 else:
@@ -125,6 +115,15 @@ class MACEWrapper():
         return self.calc
 
     def traj_to_extxyz(self,trajfile,outfilename):
+        """
+        Converts a ASE Trajectory object to a extxyz format text file
+        Adds "REF_" to the data tags so that ASE does not nuke them
+
+        trajfile: str
+
+        outfilename: str
+
+        """
 
         from ase.io import Trajectory
         from ase.io.extxyz import write_xyz
@@ -153,33 +152,47 @@ class MACEWrapper():
         
         """
 
-        from os import path
-
         # Not sensible to try training in other directory than current, so prefix is
         # suppressed here but used elsewhere (eg for retrieving trajs)
         label = self.calc_filename(seed,target,prefix="",suffix=suffix)
-        
+
+    def find_best_model(self,dirname,calcfn,seed_suffix):
+        """
+        MACE keeps changing its mind about the naming scheme for the finished model.
+        So we loop over all the possibilities and try them all.
+        We can probably remove this nonsense eventually but keep it for now
+        dirname: str
+        calcfn: str
+        seed_suffix: str
+        """
+        best_model = None
+        modelfiles = []
+        for swastr in ["_stagetwo","_swa",""]:
+            for dirstr in [f"{dirname}/",f"{dirname}/checkpoints/"]:
+                for suffix in ["",f"_run-{seed_suffix}"]:
+                    modelfiles.append(f"{dirstr}{calcfn}{suffix}{swastr}.model")
+        for modelfile in modelfiles:
+            found=False
+            if path.exists(modelfile):
+                found=True
+                best_model = modelfile
+                break
+            print(modelfile,found)
+        return best_model
+
     def train(self,seed,prefix="",suffix="",dir_suffix="",trajfile="",validfile=None,testfile=None,
               targets_in=None,restart=False,**kwargs):
         """
         Runs training for MACE model using an input trajectory as training points
 
         seed: str
-        
         target: int
-
         suffix: str
-
         trajfile: str
-
         restart: bool
-
         kwargs: dict
-
         """
         
-        from os import path
-
         # Not sensible to try training in other directory than current, so prefix is
         # suppressed here but used elsewhere (eg for retrieving trajs)
         dirname = self.calc_filename(seed,targets_in,prefix="",suffix=dir_suffix)
@@ -191,21 +204,9 @@ class MACEWrapper():
 
         # Check if training already complete
         calcfn = self.calc_filename(seed,targets_in,prefix="",suffix=suffix)
-        finished_model = None
-        modelfile = f"{dirname}/{calcfn}_swa.model"
-        if path.exists(modelfile):
-            finished_model = modelfile
-        else:
-            modelfile = f"{dirname}/{calcfn}.model"
-            if path.exists(modelfile):
-                finished_model = modelfile
-            else:
-                checkpoints_dir=f"{dirname}/checkpoints"
-                modelfile = f"{checkpoints_dir}/{calcfn}_run-{train_args.seed}.model"
-                if path.exists(modelfile):
-                    finished_model = modelfile
-        if finished_model is not None:
-            print(f'# Skipping training as finished model {finished_model} already exists')
+        best_model = self.find_best_model(dirname,calcfn,train_args.seed)
+        if best_model is not None:
+            print(f'# Skipping training as finished model {best_model} already exists')
             print(f'# Delete this if training is intended to be restarted / extended')
             return
 
