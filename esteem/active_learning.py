@@ -471,6 +471,8 @@ def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,met
                         mltraj_task.snap_wrapper = snap_wrapper
                         if two_targets:
                             snap_targets = [0,1] if target==0 else [1,0]
+                        else:
+                            snap_targets = None
                         if snap_targets is not None:
                             calc_suffix = mltraj_task.calc_suffix
                             if mltraj_task.carved_suffix is not None and mltraj_task.carved_suffix!='':
@@ -522,9 +524,11 @@ def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_s
             if separate_valid:
                 test_task.traj_links_valid = test_task.traj_links
                 test_task.which_trajs_valid = test_task.which_trajs
+                test_task.which_targets_valid = test_task.which_targets
             else:
                 test_task.traj_links_valid = None
                 test_task.which_trajs_valid = None
+                test_task.which_targets_valid = None
             add_trajectories(test_task,seeds,t,traj_suffixes,dir_suffixes,ntraj,targets,target,truth)
             # For generations > 0, we now add chosen subset trajectories for active learning
             add_iterating_trajectories(test_task,seeds,t,iter_dir_suffixes,targets,target,meth,truth)
