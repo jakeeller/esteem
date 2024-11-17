@@ -520,7 +520,7 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
     if isinstance(target,list):
         all_targets = target
     elif isinstance(target,dict):
-        all_targets = list(target.keys())
+        all_targets = target
     else:
         all_targets = [target]
     if input_traj_range is None:
@@ -560,7 +560,8 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
     
     # If we are running a wrapper that calculates all targets at once, set all_targets appropriately
     if hasattr(wrapper,'load'): # temporary way of detecting ML calculators - should be improved
-        all_targets = [all_targets]
+        if isinstance(all_targets,list):
+            all_targets = [all_targets] # add a second list around it so we just pass it in once
 
     # Loop over and recalculate each trajectory point
     for i in input_traj_range:
@@ -603,6 +604,8 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
             if cont and not readonly:
                 cycle_restarts(seed,traj_label,traj_suffix,prevtarg,targ,iout,iout,db_ext)
             calc_params['target'] = targ
+            if isinstance(all_targets,dict):
+                calc_params['calc_head'] = all_targets[targ]
             if geom_opt_kernel or vibfreq_kernel:
                 from ase.constraints import FixAtoms
                 c = FixAtoms(mask=[atom.tag!=1 for atom in frame])
@@ -650,7 +653,7 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
                 forces = np.zeros([len(frame),3])
                 print(e)
                 print('FAIL: ',label+'.out',iout,targ,len(frame))
-                #raise Exception(e)
+                raise Exception(e)
             finally:
                 chdir(origdir)
                 chdir(wdir)

@@ -59,8 +59,7 @@ class MLTrajTask:
                        'calc_suffix': self.calc_suffix,
                        'calc_dir_suffix': self.calc_dir_suffix,
                        'calc_prefix': f'../../{self.calc_prefix}', # MD will be run from subdirectory
-                       'target': self.target,
-                       'calc_head': self.target[0]}
+                       'target': self.target}
         if self.calc_seed is not None:
             calc_params['calc_seed'] = self.calc_seed
 
@@ -73,7 +72,8 @@ class MLTrajTask:
 
                 # Find (or relax) initial geometry
                 calc_params['calc_prefix'] = f'../{self.calc_prefix}'
-                calc_params['head'] = traj_target
+                if isinstance(self.target,dict):
+                    calc_params['head'] = traj_target
 
                 model[traj_label] = None
                 if self.continuation:
