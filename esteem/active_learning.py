@@ -431,7 +431,7 @@ def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,met
     Takes lists of calculators, targets, random seeds, and strings stating the ML method
     and wrappers for the MD itself and for the "committee" MD
     """
-    
+
     new_mltraj_tasks = {}
     if mltraj_task.calc_seed is None:
         mltraj_task.calc_seed = f"{{solu}}" #_{{solv}}"
@@ -444,36 +444,50 @@ def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,met
             if mltraj_task.calc_dir_suffix is None:
                 mltraj_task.calc_dir_suffix = f'{meth}{pref(t)}'
             mltraj_task.target = target
+            if isinstance(targets[target],dict):
+                mltraj_task.target = targets[target]
             targstr = targets[target]
-            for rs in rand_seed:
-                # Save a task for just using one calculator at a time
-                mltraj_task.snap_wrapper = None
-                taskname = f'{targstr}_{meth}{t}{rs}'
-                mltraj_task.wrapper.train_args.seed = rand_seed[rs]
-                mltraj_task.calc_suffix = f'{meth}{t}{rs}'
-                if snap_wrapper is None:
-                    mltraj_task.snap_calc_params = None
-                else:
-                    mltraj_task.snap_wrapper = snap_wrapper
-                    if two_targets:
-                        snap_targets = [0,1] if target==0 else [1,0]
-                    if snap_targets is not None:
-                        calc_suffix = mltraj_task.calc_suffix
-                        if mltraj_task.carved_suffix is not None and mltraj_task.carved_suffix!='':
-                            taskname = f"{taskname}_{traj_suffix}_{mltraj_task.carved_suffix}"
-                        else:
-                            taskname = f"{taskname}_{traj_suffix}"     
+            if isinstance(targstr,dict):
+                targstr = "".join((targstr[p] if p!="diff" else "") for p in targstr)
+                targets_dict = targets[target]
+            else:
+                targets_dict = {target:targets[target]}
+            for irs,rs in enumerate(rand_seed):
+                mltraj_task.which_trajs = []
+                mltraj_task.which_targets = []
+                for itarg,targets_dict_key in enumerate(targets_dict.keys()):
+                    if targets_dict_key=='diff':
+                        continue
+                    # Save a task for just using one calculator at a time
+                    mltraj_task.which_trajs.append(chr(ord('A')+irs+itarg*len(rand_seed)))
+                    mltraj_task.which_targets.append(targets_dict_key)
+                    mltraj_task.snap_wrapper = None
+                    taskname = f'{targstr}_{meth}{t}{rs}'
+                    mltraj_task.wrapper.train_args.seed = rand_seed[rs]
+                    mltraj_task.calc_suffix = f'{meth}{t}{rs}'
+                    if snap_wrapper is None:
+                        mltraj_task.snap_calc_params = None
                     else:
-                        snap_targets = target
-                        taskname = taskname + f'x{len(rand_seed)}'
-                        calc_suffix = {f'{meth}{t}{rs}':rseed for (rs,rseed) in rand_seed.items()}
-                    mltraj_task.snap_calc_params = {'target':snap_targets,
-                                                    'calc_prefix':'../../',
-                                                    'calc_dir_suffix':mltraj_task.calc_dir_suffix,
-                                                    'calc_suffix':calc_suffix,
-                                                    'calc_seed':mltraj_task.calc_seed}
-                mltraj_task.traj_suffix = f'{mltraj_task.calc_suffix}_{traj_suffix}'
-                new_mltraj_tasks[taskname] = deepcopy(mltraj_task)
+                        mltraj_task.snap_wrapper = snap_wrapper
+                        if two_targets:
+                            snap_targets = [0,1] if target==0 else [1,0]
+                        if snap_targets is not None:
+                            calc_suffix = mltraj_task.calc_suffix
+                            if mltraj_task.carved_suffix is not None and mltraj_task.carved_suffix!='':
+                                taskname = f"{taskname}_{traj_suffix}_{mltraj_task.carved_suffix}"
+                            else:
+                                taskname = f"{taskname}_{traj_suffix}"     
+                        else:
+                            snap_targets = target
+                            taskname = taskname + f'x{len(rand_seed)}'
+                            calc_suffix = {f'{meth}{t}{rs}':rseed for (rs,rseed) in rand_seed.items()}
+                        mltraj_task.snap_calc_params = {'target':snap_targets,
+                                                        'calc_prefix':'../../',
+                                                        'calc_dir_suffix':mltraj_task.calc_dir_suffix,
+                                                        'calc_suffix':calc_suffix,
+                                                        'calc_seed':mltraj_task.calc_seed}
+                    mltraj_task.traj_suffix = f'{mltraj_task.calc_suffix}_{traj_suffix}'
+                    new_mltraj_tasks[taskname] = deepcopy(mltraj_task)
     return new_mltraj_tasks
 
 def create_mltest_tasks(test_task:MLTestingTask,train_calcs,seeds,targets,rand_seed,truth,meth,

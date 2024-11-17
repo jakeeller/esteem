@@ -102,6 +102,8 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
     
     if isinstance(target,list):
         all_targets = target
+    if isinstance(target,dict):
+        all_targets = target
     else:
         all_targets = [target]        
 
@@ -253,12 +255,18 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
         chdir(origdir)
         chdir(snaps_dir)
         prev_targ = targ
-        for i,targ in enumerate(all_targets[0:]):
-            if targ == all_targets[-1]:
-                next_targ = all_targets[0]
-                next_step = step + 1
+        if 'calc_head' in calc_params:
+            orig_head = calc_params['calc_head']
+        for i,targ in enumerate(all_targets):
+            if isinstance(all_targets,list):
+                if i == len(all_targets)-1:
+                    next_targ = all_targets[0]
+                    next_step = step + 1
+                else:
+                    next_targ = all_targets[i+1]
+                    next_step = step
             else:
-                next_targ = all_targets[i+1]
+                next_targ = targ
                 next_step = step
             steplabel, readonly, cont = cycle_step_labels_and_restarts(
                                          seed,traj_label,
@@ -270,6 +278,9 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
                 readonly=True
             energy = None; forces = None;
             calc_params['target'] = targ
+            if isinstance(all_targets,dict):
+                calc_params['calc_head'] = all_targets[targ]
+                model.calc.atoms = None
             calc_forces = True
             calc_dipole = True
             results = snap_wrapper.singlepoint(model,steplabel,
@@ -285,10 +296,12 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
                 energy, = results
             if isinstance(energy,list) or isinstance(energy,np.ndarray):
                 energy = energy[0]
-            if len(all_targets[0:])>1:
+            if len(all_targets)>1:
                  print("SP: ",step,i,targ,energy,model.positions[0])
             outtraj[targ].write(model)
             prev_targ = targ
+            if isinstance(all_targets,dict):
+                calc_params['calc_head'] = orig_head
 
         # Check if the run has gone wild and should be aborted
         curr_temp = model.get_temperature()

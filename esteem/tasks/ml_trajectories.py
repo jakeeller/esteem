@@ -44,8 +44,10 @@ class MLTrajTask:
         all_trajs = get_trajectory_list(self.ntraj)
         if self.which_trajs is None:
             which_trajs = all_trajs
+            which_targets = [self.target]*len(which_trajs)
         else:
             which_trajs = self.which_trajs
+            assert len(self.which_targets)==len(self.which_trajs)
             for traj_label in which_trajs:
                 if traj_label not in all_trajs:
                     raise Exception(f"Invalid trajectory name: {traj_label}")
@@ -57,7 +59,8 @@ class MLTrajTask:
                        'calc_suffix': self.calc_suffix,
                        'calc_dir_suffix': self.calc_dir_suffix,
                        'calc_prefix': f'../../{self.calc_prefix}', # MD will be run from subdirectory
-                       'target': self.target}
+                       'target': self.target,
+                       'calc_head': self.target[0]}
         if self.calc_seed is not None:
             calc_params['calc_seed'] = self.calc_seed
 
@@ -66,10 +69,11 @@ class MLTrajTask:
         enough_data = {traj_label:False for traj_label in which_trajs}
         offsets = {traj_label:'' for traj_label in which_trajs}
         while not all(enough_data.values()):
-            for traj_label in which_trajs:
+            for traj_label,traj_target in zip(which_trajs,self.which_targets):
 
                 # Find (or relax) initial geometry
                 calc_params['calc_prefix'] = f'../{self.calc_prefix}'
+                calc_params['head'] = traj_target
 
                 model[traj_label] = None
                 if self.continuation:

@@ -461,9 +461,13 @@ class MACEWrapper():
         suffix = calc_params['calc_suffix']
         dir_suffix = calc_params['calc_dir_suffix']
         prefix = calc_params['calc_prefix']
+        head = calc_params['calc_head']
 
         # Load the MACE Calculator
         calc_ml = self.load(calc_seed,target,prefix=prefix,suffix=suffix,dir_suffix=dir_suffix)
+        if head not in calc_ml.models[0].heads:
+            raise Exception(f"Head {head} not found in MACE calculator heads list: {calc_ml.models[0].heads}")
+        model.info["head"] = head
         model.calc = calc_ml
 
         # Initialise velocities if this is first step, otherwise inherit from model
@@ -541,7 +545,8 @@ class MACEWrapper():
         suffix = calc_params['calc_suffix']
         dir_suffix = calc_params['calc_dir_suffix']
         prefix = calc_params['calc_prefix']
-        
+        head = calc_params['calc_head']
+       
         from ase.optimize import BFGS
         from ase.units import Hartree, Bohr
 
@@ -598,9 +603,13 @@ class MACEWrapper():
         suffix = calc_params['calc_suffix']
         dir_suffix = calc_params['calc_dir_suffix']
         prefix = calc_params['calc_prefix']
+        head = calc_params['calc_head']
 
         # Load the appropriate MACE  Calculator
         calc_ml = self.load(calc_seed,target,prefix=prefix,suffix=suffix,dir_suffix=dir_suffix)
+        if head not in calc_ml.models[0].heads:
+            raise Exception(f"Head {head} not found in MACE calculator heads list: {calc_ml.models[0].heads}")
+        model_opt.info["head"] = head
         model_opt.calc = calc_ml
 
         # Create instance of Vibrations class, run it and return results

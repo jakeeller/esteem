@@ -1331,7 +1331,13 @@ def mltraj_driver(mltraj,all_solutes,all_solvents,cleanup_only=False,setup_only=
     task_id = parallel.get_array_task_id()
     if task_id is not None:
         try:
-            mltraj.which_trajs = [get_trajectory_list(mltraj.ntraj)[task_id]]
+            if mltraj.which_trajs is None:
+                mltraj.which_trajs = [get_trajectory_list(mltraj.ntraj)[task_id]]
+                mltraj.which_targets = [mltraj.target]
+            else:
+                traj = get_trajectory_list(mltraj.ntraj)[task_id]
+                mltraj.which_targets = [mltraj.which_targets[mltraj.which_trajs.index(traj)]]
+                mltraj.which_trajs = [mltraj.which_trajs[mltraj.which_trajs.index(traj)]]
         except:
             print(f'# Could not find an entry for task_id {task_id} in trajectory list {get_trajectory_list(mltraj.ntraj)}')
             return
