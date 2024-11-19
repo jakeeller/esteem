@@ -91,7 +91,7 @@ class SolvateTask:
         # Count counterion charge
         netcharge = counterion_charge(counterions)     
 
-        solvatedseed = self.solute+"_"+self.solvent+"_solv"
+        solvatedseed = f'{self.solute}{"_"+self.solvent if self.solvent is not None else ""}_solv'
 
         # Prepare Solute inputs
         if not path.exists(self.solute+".prmtop"):

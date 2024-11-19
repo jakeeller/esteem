@@ -23,6 +23,7 @@ def make_diff_trajs(target_dict,which_targets,trajnames):
      itrajs = [traj for traj,targ in zip(trajnames,which_targets) if targ==itarget]
      jtrajs = [traj for traj,targ in zip(trajnames,which_targets) if targ==jtarget]
      print(f'# Calling diff_traj with {itarget} {jtarget} {trajnames}')
+     assert(len(itrajs)==len(jtrajs))
      # iterate over both lists simultaneously
      for itraj,jtraj in zip(itrajs,jtrajs):
          # Create new name for output trajectory by splitting on concatenation
@@ -101,15 +102,15 @@ class MLTrainingTask:
                 rand_seed = self.rand_seed
             else:
                 rand_seed = 123
+        trajfile_dict = {}
+        validfile_dict = {}
+        split_seed_dict = {}
         for prefix in prefs:
             # If all trajectories exist, merge them
             which_trajs, which_targets, trajnames = self.get_trajnames(prefix)
             target_dict = self.target
             if not isinstance(self.target,dict):
                 target_dict = {self.target:str(self.target)}
-            trajfile_dict = {}
-            validfile_dict = {}
-            split_seed_dict = {}
 
             # Special handling for difference trajectories
             if 'diff' in target_dict:
@@ -160,8 +161,10 @@ class MLTrainingTask:
                     raise Exception('# Missing Trajectory files: ',
                                     [f for f in trajnames if not os.path.isfile(f)])
                 # Store the filename lists for later use in constructing heads dictionaries
-                trajfile_dict[targetstr] = trajfile
-                validfile_dict[targetstr] = validfile
+                if prefix=="":
+                    trajfile_dict[targetstr] = trajfile
+                if prefix=='valid' or not separate_valid:
+                    validfile_dict[targetstr] = validfile
             
         if self.reset_loss:
             if hasattr(self.wrapper,"reset_loss"):

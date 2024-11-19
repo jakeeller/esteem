@@ -471,7 +471,7 @@ def solvate_driver(all_solutes,all_solvents,seed,task,make_sbatch=None):
         if solute in all_solvents and (solute!=solvent):
             del all_pairs[i]
     
-    all_paths = [f'{solute}_{solvent}_{md_suffix}' for (solvent,_),(solute,_) in all_pairs]
+    all_paths = [f'{solute}{"_"+solvent if solvent is not None else ""}_{md_suffix}' for (solvent,_),(solute,_) in all_pairs]
     base_path = path.basename(getcwd())
 
     # Determine if we are in a job array, in which case just run one pair
@@ -483,7 +483,7 @@ def solvate_driver(all_solutes,all_solvents,seed,task,make_sbatch=None):
     for i,((solvent,fullsolvent),(solute,fullsolute)) in enumerate(all_pairs):
         
         sol_sol_str = f'{solute} ({fullsolute}) in {solvent} ({fullsolvent})'
-        md_path = f'{solute}_{solvent}_{md_suffix}'
+        md_path = f'{solute}_{solvent}_{md_suffix}' if solvent is not None else f'{solute}_{md_suffix}'
 
         if solute in all_solvents and (solute!=solvent):
             continue
