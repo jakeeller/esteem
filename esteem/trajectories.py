@@ -606,6 +606,8 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
             calc_params['target'] = targ
             if isinstance(all_targets,dict):
                 calc_params['calc_head'] = all_targets[targ]
+                # Ensure calculator results are not cached from previous head
+                frame.calc.atoms = None
             if geom_opt_kernel or vibfreq_kernel:
                 from ase.constraints import FixAtoms
                 c = FixAtoms(mask=[atom.tag!=1 for atom in frame])

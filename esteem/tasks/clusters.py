@@ -123,9 +123,11 @@ class ClustersTask:
         # Check if the carved trajectory already exists
         which_targstr = targstr(self.which_target)
         solvstr = f'_{self.solvent}' if self.solvent is not None else ''
+        input_traj_label = self.which_traj
         if self.subset_selection_method is not None:
             input_suffix = f'{self.selected_suffix}'
-        traj_carved_file = f'{self.solute}{solvstr}_{which_targstr}_{self.which_traj}_{input_suffix}.traj'
+            input_traj_label = self.subset_selection_which_traj
+        traj_carved_file = f'{self.solute}{solvstr}_{which_targstr}_{input_traj_label}_{input_suffix}.traj'
         if self.subset_selection_method is not None:
             # If we did not find a pre-selected subset, reset input to carved suffix and check again
             if not os.path.exists(traj_carved_file):

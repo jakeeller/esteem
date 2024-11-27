@@ -459,6 +459,10 @@ def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,met
                     if targets_dict_key=='diff':
                         continue
                     # Save a task for just using one calculator at a time
+                    # Offset trajectory letter by index of entry in rand_seed list,
+                    # and by length of rand seed list times index of entry in target list
+                    # eg for 3 committee calcs, 2 targets (gs, es1), we should get
+                    # trajectories A,B,C for gs and D,E,F for es1
                     mltraj_task.which_trajs.append(chr(ord('A')+irs+itarg*len(rand_seed)))
                     mltraj_task.which_targets.append(targets_dict_key)
                     mltraj_task.snap_wrapper = None
