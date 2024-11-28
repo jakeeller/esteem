@@ -52,7 +52,7 @@ def get_param(md_param,label):
 
     return param
 
-def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
+def generate_md_trajectory(model,seed,traj_target,traj_label,traj_suffix,wrapper,
                            count_snaps,count_equil,md_steps,md_timestep,md_friction,temp,
                            calc_params,charge=0,solvent=None,constraints=None,dynamics=None,
                            snap_wrapper=None,snap_calc_params=None,
@@ -66,7 +66,7 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
         Initial geometry for the MD trajectory
     seed: str
         String containing name of molecule and excited state index
-    target: int or None
+    traj_target: int or None
         Excited state index
     traj_label: character or str
         String labelling trajectory (usually A,B,C..)
@@ -100,13 +100,6 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
     """
     from ase.units import fs
     
-    if isinstance(target,list):
-        all_targets = target
-    if isinstance(target,dict):
-        all_targets = target
-    else:
-        all_targets = [target]        
-
     # Setup file extensions for restart files
     exts = []
     snap_exts = []
@@ -118,6 +111,12 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
         exts = wrapper.get_restart_file_exts()
     if hasattr(snap_wrapper,'get_restart_file_exts'):
         snap_exts = snap_wrapper.get_restart_file_exts()
+    if isinstance(traj_target,list):
+        all_targets = traj_target
+    elif isinstance(traj_target,dict):
+        all_targets = snap_calc_params['target']
+    else:
+        all_targets = [traj_target] 
 
     equil_dir = f'{traj_suffix}_equil'
     md_dir = f'{traj_suffix}_md'
@@ -165,7 +164,15 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
             dynamics.type = "LANG"
             dynamics.friction = friction
         dynamics.new_traj = store_full_traj
-        targ = all_targets[0]
+        if isinstance(all_targets,list):
+            targ = all_targets[0]
+        elif isinstance(all_targets,dict):
+            targ = traj_target
+        if isinstance(all_targets,dict):
+            calc_params['calc_head'] = all_targets[targ]
+            model.calc.atoms = None
+        else:
+            calc_params['target'] = targ
         print(f"# Starting EQ runs 0 to {count_equil} (each {md_steps} steps of {dynamics.type} dynamics with timestep {timestep/fs} fs)")
         for step in range(0,count_equil):
             steplabel, readonly, cont = cycle_step_labels_and_restarts(
@@ -237,8 +244,15 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
         dynamics.new_traj = True
     for step in range(snaps_done,count_snaps):
         chdir(md_dir)
-        targ = all_targets[0]
-        calc_params['target'] = targ
+        if isinstance(all_targets,list):
+            targ = all_targets[0]
+        elif isinstance(all_targets,dict):
+            targ = traj_target
+        if isinstance(all_targets,dict):
+            calc_params['calc_head'] = all_targets[targ]
+            model.calc.atoms = None
+        else:
+            calc_params['target'] = targ
         
         # Run main MD between snapshots
         steplabel, readonly, cont = cycle_step_labels_and_restarts(
@@ -255,8 +269,8 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
         chdir(origdir)
         chdir(snaps_dir)
         prev_targ = targ
-        if 'calc_head' in calc_params:
-            orig_head = calc_params['calc_head']
+        if 'calc_head' in snap_calc_params:
+            orig_head = snap_calc_params['calc_head']
         for i,targ in enumerate(all_targets):
             if isinstance(all_targets,list):
                 if i == len(all_targets)-1:
@@ -277,10 +291,11 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
             if path.isfile(steplabel+'.out') or path.isfile(steplabel+'.nwo'):
                 readonly=True
             energy = None; forces = None;
-            calc_params['target'] = targ
             if isinstance(all_targets,dict):
-                calc_params['calc_head'] = all_targets[targ]
+                snap_calc_params['calc_head'] = all_targets[targ]
                 model.calc.atoms = None
+            else:
+                snap_calc_params['target'] = targ
             calc_forces = True
             calc_dipole = True
             results = snap_wrapper.singlepoint(model,steplabel,
@@ -301,7 +316,7 @@ def generate_md_trajectory(model,seed,target,traj_label,traj_suffix,wrapper,
             outtraj[targ].write(model)
             prev_targ = targ
             if isinstance(all_targets,dict):
-                calc_params['calc_head'] = orig_head
+                snap_calc_params['calc_head'] = orig_head
 
         # Check if the run has gone wild and should be aborted
         curr_temp = model.get_temperature()

@@ -73,11 +73,11 @@ class MLTrajTask:
                 # Find (or relax) initial geometry
                 calc_params['calc_prefix'] = f'../{self.calc_prefix}'
                 if isinstance(self.target,dict):
-                    calc_params['head'] = traj_target
+                    calc_params['calc_head'] = self.target[traj_target]
 
                 model[traj_label] = None
                 if self.continuation:
-                    continuation_trajfile = f"{self.seed}_{targstr(self.target)}_{traj_label}_{self.traj_suffix}.traj"
+                    continuation_trajfile = f"{self.seed}_{targstr(traj_target)}_{traj_label}_{self.traj_suffix}.traj"
                     if os.path.exists(continuation_trajfile):
                         continuation_traj = Trajectory(continuation_trajfile)
                         continuation_len[traj_label] = len(continuation_traj)
@@ -130,7 +130,7 @@ class MLTrajTask:
             calc_params['calc_prefix'] = f'../../{self.calc_prefix}'
             for traj_label in which_trajs:
                 # Pass in routine to actually run MD into generic Snapshot MD driver
-                generate_md_trajectory(model[traj_label],self.seed,self.target,traj_label,self.traj_suffix,
+                generate_md_trajectory(model[traj_label],self.seed,traj_target,traj_label,self.traj_suffix,
                                        wrapper=self.wrapper,count_snaps=self.nsnap,count_equil=self.nequil,
                                        md_steps=self.md_steps,md_timestep=self.md_timestep,
                                        md_friction=self.md_friction,store_full_traj=self.store_full_traj,
