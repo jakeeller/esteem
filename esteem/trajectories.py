@@ -52,10 +52,10 @@ def get_param(md_param,label):
 
     return param
 
-def generate_md_trajectory(model,seed,traj_target,traj_label,traj_suffix,wrapper,
+def generate_md_trajectory(model,seed,traj_target,traj_label,traj_suffix,traj_wrapper,
                            count_snaps,count_equil,md_steps,md_timestep,md_friction,temp,
-                           calc_params,charge=0,solvent=None,constraints=None,dynamics=None,
-                           snap_wrapper=None,snap_calc_params=None,
+                           traj_calc_params,charge=0,solvent=None,constraints=None,dynamics=None,
+                           snap_target=None,snap_wrapper=None,snap_calc_params=None,
                            continuation=False,store_full_traj=False,debugger=None):
     """
     Runs equilibration followed by statistics generation MD for a given model.
@@ -74,7 +74,7 @@ def generate_md_trajectory(model,seed,traj_target,traj_label,traj_suffix,wrapper
         String containing name of molecule and excited state index
     traj_suffix: str
         String appended to seed and target state to give full trajectory filename
-    wrapper: ESTEEM wrapper class
+    traj_wrapper: ESTEEM wrapper class
         Wrapper containing run_md and singlepoint functions
     count_snaps: int
         Number of snapshot runs
@@ -88,7 +88,7 @@ def generate_md_trajectory(model,seed,traj_target,traj_label,traj_suffix,wrapper
         Determines whether the full step-by-step trajectory is written, or just the snapshots each md_steps
     temp: float
         Thermostat temperature (NVT ensemble)
-    calc_params: 
+    traj_calc_params: 
         Control-parameters for the wrapper (for QM this is the basis, functional, and target;
         for ML this is the calculator seed, suffix, prefix and target)
     solvent:
@@ -104,18 +104,19 @@ def generate_md_trajectory(model,seed,traj_target,traj_label,traj_suffix,wrapper
     exts = []
     snap_exts = []
     if snap_wrapper is None:
-        snap_wrapper = wrapper
+        snap_wrapper = traj_wrapper
     if snap_calc_params is None:
-        snap_calc_params = calc_params
-        snap_calc_params['target'] = traj_target
-    if hasattr(wrapper,'get_restart_file_exts'):
-        exts = wrapper.get_restart_file_exts()
+        snap_calc_params = traj_calc_params
+    if hasattr(traj_wrapper,'get_restart_file_exts'):
+        exts = traj_wrapper.get_restart_file_exts()
     if hasattr(snap_wrapper,'get_restart_file_exts'):
         snap_exts = snap_wrapper.get_restart_file_exts()
-    if isinstance(traj_target,list):
+    if snap_target is not None:
+        all_targets = snap_target
+    else:
         all_targets = traj_target
-    elif isinstance(snap_calc_params['target'],dict):
-        all_targets = snap_calc_params['target']
+    if isinstance(all_targets,list) or isinstance(all_targets,dict):
+        all_targets = traj_target
     else:
         all_targets = [traj_target] 
 
@@ -169,11 +170,11 @@ def generate_md_trajectory(model,seed,traj_target,traj_label,traj_suffix,wrapper
             targ = all_targets[0]
         elif isinstance(all_targets,dict):
             targ = traj_target
-        if isinstance(all_targets,dict):
-            calc_params['calc_head'] = all_targets[targ]
+        if isinstance(traj_calc_params['target'],dict):
+            traj_calc_params['calc_head'] = traj_calc_params['target'][traj_target]
             model.calc.atoms = None
         else:
-            calc_params['target'] = targ
+            traj_calc_params['target'] = targ
         print(f"# Starting EQ runs 0 to {count_equil} (each {md_steps} steps of {dynamics.type} dynamics with timestep {timestep/fs} fs)")
         for step in range(0,count_equil):
             steplabel, readonly, cont = cycle_step_labels_and_restarts(
@@ -181,7 +182,7 @@ def generate_md_trajectory(model,seed,traj_target,traj_label,traj_suffix,wrapper
                                          None,equil_dir,md_dir,
                                          targ,targ,targ,step-1,step,step+1,
                                          count_equil,0,exts)
-            dynamics = wrapper.run_md(model,steplabel,calc_params,md_steps,timestep,step,
+            dynamics = traj_wrapper.run_md(model,steplabel,traj_calc_params,md_steps,timestep,step,
                     temp,solvent=solvent,charge=charge,constraints=constraints,dynamics=dynamics,
                     continuation=cont,readonly=readonly)
             if debugger is not None:
@@ -249,23 +250,22 @@ def generate_md_trajectory(model,seed,traj_target,traj_label,traj_suffix,wrapper
             targ = all_targets[0]
         elif isinstance(all_targets,dict):
             targ = traj_target
-        if isinstance(all_targets,dict):
-            calc_params['calc_head'] = all_targets[targ]
+        if isinstance(traj_calc_params['target'],dict):
+            traj_calc_params['calc_head'] = traj_calc_params['target'][traj_target]
             model.calc.atoms = None
         else:
-            calc_params['target'] = targ
-        
+            traj_calc_params['target'] = targ
+
         # Run main MD between snapshots
         steplabel, readonly, cont = cycle_step_labels_and_restarts(
                                      seed,traj_label,
                                      equil_dir,md_dir,None,
                                      targ,targ,targ,step-1,step,step+1,
                                      count_snaps,count_equil,exts)
-        dynamics = wrapper.run_md(model,steplabel,calc_params,md_steps,timestep,count_equil+step,
+        dynamics = traj_wrapper.run_md(model,steplabel,traj_calc_params,md_steps,timestep,count_equil+step,
                 temp,solvent=solvent,charge=charge,constraints=constraints,dynamics=dynamics,
                 continuation=cont,readonly=readonly)
         report_outputs(model,step,targ,'MD')
-
         # Now do singlepoints for (ground and) excited state snapshots, if applicable
         chdir(origdir)
         chdir(snaps_dir)
@@ -292,8 +292,8 @@ def generate_md_trajectory(model,seed,traj_target,traj_label,traj_suffix,wrapper
             if path.isfile(steplabel+'.out') or path.isfile(steplabel+'.nwo'):
                 readonly=True
             energy = None; forces = None;
-            if isinstance(all_targets,dict):
-                snap_calc_params['calc_head'] = all_targets[targ]
+            if isinstance(snap_calc_params['target'],dict):
+                snap_calc_params['calc_head'] = snap_calc_params['target'][targ]
                 model.calc.atoms = None
             else:
                 snap_calc_params['target'] = targ
@@ -533,7 +533,6 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
     print(f"# Reading from input trajectory {input_traj} {input_traj_range}")
     intraj = Trajectory(input_traj)
 
-    print('setting all_targets: ',target,type(target))
     if isinstance(target,list):
         all_targets = target
     elif isinstance(target,dict):
@@ -623,7 +622,8 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
             if isinstance(all_targets,dict):
                 calc_params['calc_head'] = all_targets[targ]
                 # Ensure calculator results are not cached from previous head
-                frame.calc.atoms = None
+                if frame.calc is not None:
+                    frame.calc.atoms = None
             else:
                 calc_params['target'] = targ
             if geom_opt_kernel or vibfreq_kernel:
@@ -749,7 +749,8 @@ def formatted_output(iout,targ,natoms,pos,energy,forces,dipole,calc_forces,calc_
         energy_str = f'{energy:18.8f}'
     freq_str = ''
     # Write line to stdout
-    print(f'{iout:04} {targ} {energy_str} {natoms:5} {pos_str} {force_str} {dip_str}')
+    targstr = 'D' if targ=="diff" else targ
+    print(f'{iout:04} {targstr} {energy_str} {natoms:5} {pos_str} {force_str} {dip_str}')
     return
 
 def cycle_restarts(seed,traj_label,traj_suffix,prevtarg,currtarg,prevstep,currstep,db_ext):

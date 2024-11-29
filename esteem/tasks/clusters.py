@@ -311,7 +311,10 @@ class ClustersTask:
                     ref_mol_dir = ref_mol_dir.replace("{target}","gs")
                     ref_mol_dir = ref_mol_dir.replace("{ref_solv}",ref_solv)
                     ref_solv_dir = f'../{ref_mol_dir}'
-                    calc_params['target'] = targ
+                    if isinstance(calc_params['target'],dict):
+                        calc_params['calc_head'] = calc_params['target'][targ]
+                    else:
+                        calc_params['target'] = targ
                     trajname = f"{seed}_{targstr(targ)}_{traj_label}_{traj_suffix}.traj"
                     fails = sanity_check(trajname, self.wrapper, calc_params, ref_solu_dir, ref_solu_t,
                                          ref_solv_dir, ref_solv)

@@ -473,24 +473,26 @@ def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,met
                         mltraj_task.snap_calc_params = None
                     else:
                         mltraj_task.snap_wrapper = snap_wrapper
-                        if two_targets:
-                            snap_targets = [0,1] if target==0 else [1,0]
-                        else:
-                            snap_targets = None
                         if snap_targets is not None:
+                            if two_targets:
+                                snap_targets = [0,1] if target==0 else [1,0]
                             calc_suffix = mltraj_task.calc_suffix
                             if mltraj_task.carved_suffix is not None and mltraj_task.carved_suffix!='':
                                 taskname = f"{taskname}_{traj_suffix}_{mltraj_task.carved_suffix}"
                             else:
-                                taskname = f"{taskname}_{traj_suffix}"     
+                                taskname = f"{taskname}_{traj_suffix}"
+                            calc_targets = snap_targets
+                            mltraj_task.snap_target = snap_targets
                         else:
                             if isinstance(targets[target],dict):
-                                snap_targets = targets[target]
+                                calc_targets = targets[target]
                             else:
-                                snap_targets = target
+                                calc_targets = target
                             taskname = taskname + f'x{len(rand_seed)}'
                             calc_suffix = {f'{meth}{t}{rs}':rseed for (rs,rseed) in rand_seed.items()}
-                        mltraj_task.snap_calc_params = {'target':snap_targets,
+                            mltraj_task.snap_target = calc_targets
+
+                        mltraj_task.snap_calc_params = {'target':calc_targets,
                                                         'calc_prefix':'../../',
                                                         'calc_dir_suffix':mltraj_task.calc_dir_suffix,
                                                         'calc_suffix':calc_suffix,
