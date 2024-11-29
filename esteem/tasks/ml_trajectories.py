@@ -75,6 +75,7 @@ class MLTrajTask:
                 if isinstance(self.target,dict):
                     calc_params['calc_head'] = self.target[traj_target]
 
+                # Check if we have a continuation to load in
                 model[traj_label] = None
                 if self.continuation:
                     continuation_trajfile = f"{self.seed}_{targstr(traj_target)}_{traj_label}_{self.traj_suffix}.traj"
@@ -97,10 +98,12 @@ class MLTrajTask:
                 else:
                     continuation_len[traj_label] = 0
 
+                # If no continuation, find initial geometry
                 if model[traj_label] is None:
                     offset_traj_label = traj_label + offsets[traj_label]
                     model[traj_label] = find_initial_geometry(self.seed,self.wrapper.geom_opt,
                                                           calc_params,offset_traj_label)
+                # Set up any constraints
                 if self.constraints is not None:
                     from ase.constraints import FixBondLengths, Hookean, FixInternals
                     set_constraints = []
@@ -118,13 +121,13 @@ class MLTrajTask:
                     model[traj_label].set_constraint(set_constraints)
 
             # Evaluate initial energies
-            for i in which_trajs:
+            for traj_label in which_trajs:
                 if continuation_len[traj_label]>=self.nsnap:
                     continue
-                ep = self.wrapper.singlepoint(model[i],"test",calc_params)[0]
-                ek = model[i].get_kinetic_energy()
-                print(f'# Trajectory {i} initial potential energy = {ep-self.wrapper.atom_e}')
-                print(f'# Trajectory {i} initial   kinetic energy = {ek}')
+                ep = self.wrapper.singlepoint(model[traj_label],"test",calc_params)[0]
+                ek = model[traj_label].get_kinetic_energy()
+                print(f'# Trajectory {traj_label} initial potential energy = {ep-self.wrapper.atom_e}')
+                print(f'# Trajectory {traj_label} initial   kinetic energy = {ek}')
 
             # Current path will be two levels down from starting path in MD run, so adjust prefix
             calc_params['calc_prefix'] = f'../../{self.calc_prefix}'
