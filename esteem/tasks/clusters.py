@@ -224,7 +224,7 @@ class ClustersTask:
                 if isinstance(self.target,list):
                     target = self.target
                 elif isinstance(self.target,dict):
-                    target = list(self.target.keys())
+                    target = self.target
                 else:
                     mintarget = self.target
                     target = list(range(mintarget,self.nroots+1))
@@ -296,11 +296,13 @@ class ClustersTask:
             # If we are processing whole trajectory, do sanity checking of result now
             if self.task_id is None and self.ref_mol_dir is not None:
                 ref_solu, ref_solv = get_solu_solv_names(seed)
-                for targ in target[0:]:
+                for targ in target:
                     if targ==0:
                         ref_solu_t = ref_solu
                     else:
                         ref_solu_t = f'{ref_solu}_{targstr(targ)}'
+                    if "diff" in str(targ):
+                        continue
                     ref_mol_dir = self.ref_mol_dir
                     ref_mol_dir = ref_mol_dir.replace("{target}",targstr(targ))
                     ref_mol_dir = ref_mol_dir.replace("{ref_solv}",ref_solv)

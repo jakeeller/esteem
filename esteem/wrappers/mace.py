@@ -306,6 +306,16 @@ class MACEWrapper():
         run_train.run(train_args)
         
         os.chdir(orig_dir)
+
+    def check_head(self,calc_ml,head):
+        if isinstance(calc_ml,list):
+            head_found = [head in calc.models[0].heads for calc in calc_ml]
+            heads_list = [calc.models[0].heads for calc in calc_ml]
+        else:
+            head_found = head in calc_ml.models[0].heads
+            heads_list = calc_ml.models[0].heads
+        if not head_found:
+            raise Exception(f"Head {head} not found in MACE calculator heads list: {heads_list}")
     
     def traj_write(self,atoms,traj):
         kw = {#'dipole': atoms.get_dipole_moment(),
@@ -468,8 +478,7 @@ class MACEWrapper():
         calc_ml = self.load(calc_seed,target,prefix=prefix,suffix=suffix,dir_suffix=dir_suffix)
         if isinstance(target,dict):
             head = calc_params['calc_head']
-            if head not in calc_ml.models[0].heads:
-                raise Exception(f"Head {head} not found in MACE calculator heads list: {calc_ml.models[0].heads}")
+            self.check_head(calc_ml,head)
             model.info["head"] = head
         model.calc = calc_ml
 
@@ -556,8 +565,7 @@ class MACEWrapper():
         calc_ml = self.load(calc_seed,target,prefix=prefix,suffix=suffix,dir_suffix=dir_suffix)
         if isinstance(target,dict):
             head = calc_params['calc_head']
-            if head not in calc_ml.models[0].heads:
-                raise Exception(f"Head {head} not found in MACE calculator heads list: {calc_ml.models[0].heads}")
+            self.check_head(calc_ml,head)
             model.info["head"] = head
         model.calc = calc_ml
 
@@ -615,8 +623,7 @@ class MACEWrapper():
         calc_ml = self.load(calc_seed,target,prefix=prefix,suffix=suffix,dir_suffix=dir_suffix)
         if isinstance(target,dict):
             head = calc_params['calc_head']
-            if head not in calc_ml.models[0].heads:
-                raise Exception(f"Head {head} not found in MACE calculator heads list: {calc_ml.models[0].heads}")
+            self.check_head(calc_ml,head)
             model_opt.info["head"] = head
         model_opt.calc = calc_ml
 
@@ -666,8 +673,7 @@ class MACEWrapper():
         calc_ml = self.load(calc_seed,target,prefix=prefix,suffix=suffix,dir_suffix=dir_suffix)
         if isinstance(target,dict):
             head = calc_params['calc_head']
-            if head not in calc_ml.models[0].heads:
-                raise Exception(f"Head {head} not found in MACE calculator heads list: {calc_ml.models[0].heads}")
+            self.check_head(calc_ml,head)
             model.info["head"] = head
         if isinstance(calc_ml,list):
             e_calc = []

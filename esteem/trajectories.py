@@ -533,6 +533,7 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
     print(f"# Reading from input trajectory {input_traj} {input_traj_range}")
     intraj = Trajectory(input_traj)
 
+    print('setting all_targets: ',target,type(target))
     if isinstance(target,list):
         all_targets = target
     elif isinstance(target,dict):
@@ -619,11 +620,12 @@ def recalculate_trajectory(seed,target,traj_label,traj_suffix,input_target,input
             forces = None;
             if cont and not readonly:
                 cycle_restarts(seed,traj_label,traj_suffix,prevtarg,targ,iout,iout,db_ext)
-            calc_params['target'] = targ
             if isinstance(all_targets,dict):
                 calc_params['calc_head'] = all_targets[targ]
                 # Ensure calculator results are not cached from previous head
                 frame.calc.atoms = None
+            else:
+                calc_params['target'] = targ
             if geom_opt_kernel or vibfreq_kernel:
                 from ase.constraints import FixAtoms
                 c = FixAtoms(mask=[atom.tag!=1 for atom in frame])
