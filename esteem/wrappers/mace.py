@@ -176,8 +176,10 @@ class MACEWrapper():
             if path.exists(modelfile):
                 found=True
                 best_model = modelfile
+                print(modelfile,' found')
                 break
-            print(modelfile,found)
+        if best_model is None:
+            print(f'ERROR: No model found among: {modelfiles}')
         return best_model
 
     def train(self,seed,prefix="",suffix="",dir_suffix="",trajfile="",validfile=None,testfile=None,

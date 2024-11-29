@@ -93,7 +93,7 @@ class MLTrajTask:
                     else:
                         self.continuation = False
                         continuation_len[traj_label] = 0
-                        print('# No continuation file found, initialising from scratch')
+                        print(f'# No continuation file {continuation_trajfile} found, initialising from scratch')
                 else:
                     continuation_len[traj_label] = 0
 
@@ -139,7 +139,7 @@ class MLTrajTask:
                                        snap_calc_params=self.snap_calc_params if not self.recalculate_carved_traj else None,
                                        continuation=self.continuation,debugger=self.debugger)
                 self.continuation = True
-                output_trajfile = f"{self.seed}_{targstr(self.target)}_{traj_label}_{self.traj_suffix}.traj"
+                output_trajfile = f"{self.seed}_{targstr(traj_target)}_{traj_label}_{self.traj_suffix}.traj"
                 if os.path.exists(output_trajfile):
                     output_traj = Trajectory(output_trajfile)
                     continuation_len[traj_label] = len(output_traj)

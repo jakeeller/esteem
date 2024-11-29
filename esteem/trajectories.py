@@ -107,13 +107,14 @@ def generate_md_trajectory(model,seed,traj_target,traj_label,traj_suffix,wrapper
         snap_wrapper = wrapper
     if snap_calc_params is None:
         snap_calc_params = calc_params
+        snap_calc_params['target'] = traj_target
     if hasattr(wrapper,'get_restart_file_exts'):
         exts = wrapper.get_restart_file_exts()
     if hasattr(snap_wrapper,'get_restart_file_exts'):
         snap_exts = snap_wrapper.get_restart_file_exts()
     if isinstance(traj_target,list):
         all_targets = traj_target
-    elif isinstance(traj_target,dict):
+    elif isinstance(snap_calc_params['target'],dict):
         all_targets = snap_calc_params['target']
     else:
         all_targets = [traj_target] 

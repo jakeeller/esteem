@@ -484,7 +484,10 @@ def create_mltraj_tasks(mltraj_task:MLTrajTask,train_calcs,targets,rand_seed,met
                             else:
                                 taskname = f"{taskname}_{traj_suffix}"     
                         else:
-                            snap_targets = target
+                            if isinstance(targets[target],dict):
+                                snap_targets = targets[target]
+                            else:
+                                snap_targets = target
                             taskname = taskname + f'x{len(rand_seed)}'
                             calc_suffix = {f'{meth}{t}{rs}':rseed for (rs,rseed) in rand_seed.items()}
                         mltraj_task.snap_calc_params = {'target':snap_targets,

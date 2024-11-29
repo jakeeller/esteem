@@ -1457,16 +1457,16 @@ def mltraj_cleanup(mltraj):
     ct.repeat_without_solute = True if mltraj.corr_traj else False
     ct.solute,ct.solvent = get_solu_solv_names(mltraj.seed)
     ct.which_target = mltraj.target
-    for ct.which_traj in mltraj.which_trajs:
+    for (ct.which_traj,traj_target) in zip(mltraj.which_trajs,mltraj.which_targets):
         ct.min_snapshots = 0;
         ct.max_snapshots = mltraj.nsnap
         ct.max_atoms = mltraj.carve_trajectory_max_atoms
         if mltraj.carved_suffix is None:
             mltraj.carved_suffix = "carved"
         ct.carved_suffix = f"{mltraj.traj_suffix}_{mltraj.carved_suffix}"
-        ct.md_suffix = f"{targstr(ct.which_target)}_{ct.which_traj}_{mltraj.traj_suffix}"
+        ct.md_suffix = f"{targstr(traj_target)}_{ct.which_traj}_{mltraj.traj_suffix}"
         solvstr = f'_{ct.solvent}' if ct.solvent is not None else ''
-        traj_carved_file = f'{ct.solute}{solvstr}_{targstr(ct.which_target)}_{ct.which_traj}_{ct.carved_suffix}.traj'
+        traj_carved_file = f'{ct.solute}{solvstr}_{targstr(traj_target)}_{ct.which_traj}_{ct.carved_suffix}.traj'
         if path.exists(traj_carved_file) and path.getsize(traj_carved_file)>0:
             print(f'# Skipping carving spheres for postprocessing - {traj_carved_file} already present')
         else:
@@ -1476,7 +1476,7 @@ def mltraj_cleanup(mltraj):
             ct.wrapper = mltraj.snap_wrapper
             ct.output = f"{mltraj.traj_suffix}_recalc_{mltraj.carved_suffix}"
             ct.calc_params = mltraj.snap_calc_params
-            ct.target = mltraj.snap_calc_params['target']
+            ct.target = ct.which_target #mltraj.snap_calc_params['target']
             ct.nroots = mltraj.target
             ct.ref_mol_dir = mltraj.ref_mol_dir
             all_results_present = True
@@ -1488,6 +1488,8 @@ def mltraj_cleanup(mltraj):
             else:
                targs = [ct.target]
             for targ in targs:
+                if isinstance(targs,dict):
+                    targ=targs[targ]
                 traj_recalc_file = f'{ct.solute}{solvstr}_{targstr(targ)}_{ct.which_traj}_{ct.output}.traj'
                 file_present = (path.exists(traj_recalc_file) and
                                 path.getsize(traj_recalc_file)>0)
